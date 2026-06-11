@@ -24,6 +24,7 @@ const userSchema = new Schema(
         "admin",
         "partner",
         "sales",
+        "digital_marketing",
         "project_manager",
         "developer",
         "client",

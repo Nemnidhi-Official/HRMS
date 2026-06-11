@@ -6,7 +6,9 @@ import { requireRoleAccess } from "@/lib/auth/role-access";
 export const dynamic = "force-dynamic";
 
 export default async function PipelinePage() {
-  await requireRoleAccess(["admin", "sales"], { redirectTo: "/projects" });
+  await requireRoleAccess(["admin", "sales", "digital_marketing"], {
+    redirectTo: "/projects",
+  });
 
   const stages = (await getPipelineBoard()) as Array<{
     stage: string;

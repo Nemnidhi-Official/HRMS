@@ -22,7 +22,7 @@ interface LoginFormProps {
 export function LoginForm({
   lockedRole,
   title = "Sign In",
-  description = "Start a secure Vega session with role-based access for admin, developer, and sales.",
+  description = "Start a secure Vega session with role-based access for admin, developer, sales, and digital marketing.",
 }: LoginFormProps) {
   const router = useRouter();
   const [email, setEmail] = useState("");

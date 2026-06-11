@@ -22,3 +22,18 @@ export const updateUserSchema = z
   .refine((value) => Object.keys(value).length > 0, {
     message: "At least one field is required to update user credentials.",
   });
+
+export const passwordChangeRequestSchema = z
+  .object({
+    newPassword: z.string().min(8).max(72),
+    confirmPassword: z.string().min(8).max(72),
+  })
+  .refine((value) => value.newPassword === value.confirmPassword, {
+    message: "New password and confirm password do not match.",
+    path: ["confirmPassword"],
+  });
+
+export const reviewPasswordChangeRequestSchema = z.object({
+  action: z.enum(["approve", "reject"]),
+  reviewNote: z.string().trim().max(500).optional(),
+});

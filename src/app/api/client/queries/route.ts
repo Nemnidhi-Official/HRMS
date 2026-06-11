@@ -5,7 +5,7 @@ import { createClientQuerySchema } from "@/lib/validation/client-query";
 import { ClientQueryModel } from "@/models";
 import { serializeForJson } from "@/lib/utils/serialize";
 
-const staffRoles = ["admin", "developer", "sales"] as const;
+const staffRoles = ["admin", "developer", "sales", "digital_marketing"] as const;
 
 export async function GET() {
   try {

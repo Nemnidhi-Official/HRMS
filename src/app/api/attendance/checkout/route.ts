@@ -48,7 +48,7 @@ export async function PATCH() {
       checkedOutAt,
       entry.totalBreakMinutes,
     );
-    entry.dayStatus = "present";
+    entry.dayStatus = entry.dayStatus === "late_coming" ? "late_coming" : "present";
     entry.markedByAdminId = null;
     entry.markedAt = null;
     await entry.save();

@@ -121,7 +121,9 @@ export function UniversalChat({
   const [draftMessage, setDraftMessage] = useState("");
   const [searchValue, setSearchValue] = useState("");
   const [threadSearchValue, setThreadSearchValue] = useState("");
-  const [roleFilter, setRoleFilter] = useState<"all" | "admin" | "developer" | "sales">("all");
+  const [roleFilter, setRoleFilter] = useState<
+    "all" | "admin" | "developer" | "sales" | "digital_marketing"
+  >("all");
   const [listMode, setListMode] = useState<"all" | "unread">("all");
   const [messageLimit, setMessageLimit] = useState(100);
   const [pinnedUserIds, setPinnedUserIds] = useState<string[]>(() => {
@@ -510,13 +512,21 @@ export function UniversalChat({
               className="h-10 w-full rounded-xl border border-border/70 bg-background px-3 text-sm"
               value={roleFilter}
               onChange={(event) =>
-                setRoleFilter(event.target.value as "all" | "admin" | "developer" | "sales")
+                setRoleFilter(
+                  event.target.value as
+                    | "all"
+                    | "admin"
+                    | "developer"
+                    | "sales"
+                    | "digital_marketing",
+                )
               }
             >
               <option value="all">All roles</option>
               <option value="admin">Admin</option>
               <option value="developer">Developer</option>
               <option value="sales">Sales</option>
+              <option value="digital_marketing">Digital Marketing</option>
             </select>
             <select
               className="h-10 w-full rounded-xl border border-border/70 bg-background px-3 text-sm"

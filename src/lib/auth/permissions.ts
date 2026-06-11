@@ -11,6 +11,7 @@ const roleMatrix: Record<UserRole, number> = {
   client: 1,
   developer: 2,
   sales: 3,
+  digital_marketing: 3,
   project_manager: 4,
   partner: 5,
   admin: 6,
@@ -38,7 +39,15 @@ export async function getActorContext(options?: {
 
   const role =
     roleHeader &&
-    ["admin", "partner", "sales", "project_manager", "developer", "client"].includes(roleHeader)
+    [
+      "admin",
+      "partner",
+      "sales",
+      "digital_marketing",
+      "project_manager",
+      "developer",
+      "client",
+    ].includes(roleHeader)
       ? (roleHeader as UserRole)
       : null;
 
@@ -67,14 +76,14 @@ export function assertRoleAccess(
 }
 
 export const permissionRules = {
-  manageLeads: ["admin", "partner", "sales"] as UserRole[],
-  manageProposals: ["admin", "partner", "sales"] as UserRole[],
+  manageLeads: ["admin", "partner", "sales", "digital_marketing"] as UserRole[],
+  manageProposals: ["admin", "partner", "sales", "digital_marketing"] as UserRole[],
   approveHighTicket: ["admin", "partner"] as UserRole[],
   manageScope: ["admin", "partner", "project_manager"] as UserRole[],
   managePricing: ["admin", "partner"] as UserRole[],
   manageUsers: ["admin"] as UserRole[],
   manageProjectAssignments: ["admin"] as UserRole[],
   accessProjectAssignments: ["admin", "developer"] as UserRole[],
-  createChangeOrders: ["admin", "partner", "project_manager", "sales"] as UserRole[],
+  createChangeOrders: ["admin", "partner", "project_manager", "sales", "digital_marketing"] as UserRole[],
   accessClientVault: ["admin", "partner", "project_manager", "client"] as UserRole[],
 };

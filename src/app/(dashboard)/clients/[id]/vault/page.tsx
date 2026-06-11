@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 type Params = Promise<{ id: string }>;
 
 export default async function ClientVaultPage({ params }: { params: Params }) {
-  await requireRoleAccess(["admin", "sales"]);
+  await requireRoleAccess(["admin", "sales", "digital_marketing"]);
 
   const { id } = await params;
   const vault = await getClientVault(id);

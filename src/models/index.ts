@@ -8,6 +8,7 @@ export { ClientQueryModel } from "@/models/ClientQuery";
 export { LeadModel } from "@/models/Lead";
 export { LeaveBalanceModel } from "@/models/LeaveBalance";
 export { LeaveRequestModel } from "@/models/LeaveRequest";
+export { PasswordChangeRequestModel } from "@/models/PasswordChangeRequest";
 export { ProjectModel } from "@/models/Project";
 export { PricingComponentModel } from "@/models/PricingComponent";
 export { ProposalModel } from "@/models/Proposal";

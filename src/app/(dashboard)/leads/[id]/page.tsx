@@ -123,7 +123,7 @@ function MailIcon() {
 type Params = Promise<{ id: string }>;
 
 export default async function LeadDetailPage({ params }: { params: Params }) {
-  await requireRoleAccess(["admin", "sales"]);
+  await requireRoleAccess(["admin", "sales", "digital_marketing"]);
 
   const { id } = await params;
   await connectToDatabase();
@@ -337,7 +337,7 @@ export default async function LeadDetailPage({ params }: { params: Params }) {
             <CardHeader>
               <CardTitle>Edit Lead Fields</CardTitle>
               <CardDescription>
-                Admin and sales can update core lead details from here.
+                Admin, sales, and digital marketing can update core lead details from here.
               </CardDescription>
             </CardHeader>
             <CardContent>

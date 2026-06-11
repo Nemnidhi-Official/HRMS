@@ -40,7 +40,7 @@ export async function POST() {
       return fail("You are already checked in for today.", 409);
     }
     if (existingEntry) {
-      existingEntry.dayStatus = "present";
+      existingEntry.dayStatus = existingEntry.dayStatus === "late_coming" ? "late_coming" : "present";
       existingEntry.checkInAt = new Date();
       existingEntry.checkOutAt = null;
       existingEntry.workedMinutes = 0;

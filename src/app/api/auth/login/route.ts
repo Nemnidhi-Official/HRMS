@@ -35,27 +35,38 @@ export async function POST(request: Request) {
 
     let user = await UserModel.findOne({ email: normalizedEmail });
     if (!user) {
+      const staffAccountCount = await UserModel.countDocuments({
+        role: { $in: LOGIN_ROLES },
+      });
+      const canBootstrapFirstAdmin = staffAccountCount === 0 && payload.role === "admin";
+
+      if (!canBootstrapFirstAdmin) {
+        return fail("Invalid email or password.", 401);
+      }
+
       user = await UserModel.create({
         email: normalizedEmail,
         fullName: payload.fullName ?? defaultNameFromEmail(payload.email),
-        role: payload.role,
+        role: "admin",
         passwordHash: hashPassword(payload.password),
         status: "active",
         lastLoginAt: new Date(),
       });
-    } else if (user.role !== payload.role) {
-      throw new Error("This email is mapped to a different role.");
-    } else if (!LOGIN_ROLES.includes(user.role as (typeof LOGIN_ROLES)[number])) {
-      throw new Error("This role is not allowed to login.");
     } else {
-      if (!user.passwordHash) {
-        user.passwordHash = hashPassword(payload.password);
-      } else if (!verifyPassword(payload.password, user.passwordHash)) {
+      if (user.role !== payload.role) {
         return fail("Invalid email or password.", 401);
       }
-
+      if (!LOGIN_ROLES.includes(user.role as (typeof LOGIN_ROLES)[number])) {
+        throw new Error("This role is not allowed to login.");
+      }
       if (user.status !== "active") {
-        user.status = "active";
+        return fail("This account is not active. Please contact admin.", 403);
+      }
+      if (!user.passwordHash) {
+        return fail("Password is not set for this account. Please contact admin.", 403);
+      }
+      if (!verifyPassword(payload.password, user.passwordHash)) {
+        return fail("Invalid email or password.", 401);
       }
 
       user.lastLoginAt = new Date();

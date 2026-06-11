@@ -19,7 +19,7 @@ function humanizeStatus(status: "pending" | "in_progress" | "completed") {
 }
 
 export default async function ClientsPage() {
-  const session = await requireRoleAccess(["admin", "sales"]);
+  const session = await requireRoleAccess(["admin", "sales", "digital_marketing"]);
 
   const clients = (await getClients()) as Array<{
     _id: string;

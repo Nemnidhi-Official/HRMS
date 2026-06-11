@@ -1,6 +1,6 @@
 import type { UserRole } from "@/types/user";
 
-export const attendanceMemberRoles: UserRole[] = ["developer", "sales"];
+export const attendanceMemberRoles: UserRole[] = ["developer", "sales", "digital_marketing"];
 
 export const attendanceAdminRoles: UserRole[] = ["admin"];
 

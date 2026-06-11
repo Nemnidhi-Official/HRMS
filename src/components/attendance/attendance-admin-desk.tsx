@@ -31,7 +31,7 @@ type Notice = {
   text: string;
 };
 
-type AttendanceMarkStatus = "present" | "absent" | "half_day";
+type AttendanceMarkStatus = AttendanceDayStatus;
 type AttendanceGridDisplayStatus = AttendanceDayStatus | "weekend_off";
 
 interface AttendanceAdminDeskProps {
@@ -92,6 +92,9 @@ function statusBadge(status: string) {
   if (status === "half_day") {
     return { label: "half day", variant: "warning" as const };
   }
+  if (status === "late_coming") {
+    return { label: "late coming", variant: "accent" as const };
+  }
   return { label: status, variant: "accent" as const };
 }
 
@@ -104,6 +107,7 @@ function getStatusSymbol(status?: AttendanceGridDisplayStatus) {
   if (status === "present") return "P";
   if (status === "absent") return "A";
   if (status === "half_day") return "H";
+  if (status === "late_coming") return "L";
   if (status === "weekend_off") return "W";
   return "-";
 }
@@ -117,6 +121,9 @@ function getStatusSymbolClass(status?: AttendanceGridDisplayStatus) {
   }
   if (status === "half_day") {
     return "bg-warning/15 text-warning";
+  }
+  if (status === "late_coming") {
+    return "bg-accent/15 text-accent";
   }
   if (status === "weekend_off") {
     return "bg-primary/10 text-primary";
@@ -318,6 +325,7 @@ export function AttendanceAdminDesk({
               }
             >
               <option value="present">Present</option>
+              <option value="late_coming">Late Coming</option>
               <option value="absent">Absent</option>
               <option value="half_day">Half Day</option>
             </select>
@@ -454,10 +462,10 @@ export function AttendanceAdminDesk({
               </p>
             </div>
             <div className="rounded-lg border border-border/70 bg-card px-3 py-2">
-              <p className="text-xs text-muted-foreground">Present / Absent / Half</p>
+              <p className="text-xs text-muted-foreground">Present / Late / Absent / Half</p>
               <p className="text-lg font-semibold text-foreground">
-                {monthlyData.totals.presentDays} / {monthlyData.totals.absentDays} /{" "}
-                {monthlyData.totals.halfDays}
+                {monthlyData.totals.presentDays} / {monthlyData.totals.lateComingDays} /{" "}
+                {monthlyData.totals.absentDays} / {monthlyData.totals.halfDays}
               </p>
             </div>
           </div>
@@ -474,6 +482,9 @@ export function AttendanceAdminDesk({
                 </span>
                 <span className="inline-flex items-center gap-1 rounded bg-danger/15 px-2 py-1 text-danger">
                   <span className="font-semibold">A</span> Absent
+                </span>
+                <span className="inline-flex items-center gap-1 rounded bg-accent/15 px-2 py-1 text-accent">
+                  <span className="font-semibold">L</span> Late Coming
                 </span>
                 <span className="inline-flex items-center gap-1 rounded bg-warning/15 px-2 py-1 text-warning">
                   <span className="font-semibold">H</span> Half Day
@@ -516,6 +527,9 @@ export function AttendanceAdminDesk({
                         </span>
                         <span className="rounded bg-danger/15 px-2 py-1 font-semibold text-danger">
                           A {row.summary.absentDays}
+                        </span>
+                        <span className="rounded bg-accent/15 px-2 py-1 font-semibold text-accent">
+                          L {row.summary.lateComingDays}
                         </span>
                         <span className="rounded bg-warning/15 px-2 py-1 font-semibold text-warning">
                           H {row.summary.halfDays}

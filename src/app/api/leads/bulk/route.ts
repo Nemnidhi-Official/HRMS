@@ -321,24 +321,32 @@ export async function POST(request: Request) {
 }
 
 export async function GET() {
-  return ok(
-    serializeForJson({
-      requiredColumns: ["contactName", "email"],
-      recommendedColumns: [
-        "title",
-        "phone",
-        "source",
-        "category",
-        "urgency",
-        "description",
-        "budgetMin",
-        "budgetMax",
-        "budgetCurrency",
-        "tags",
-      ],
-      acceptedSourceValues: leadSourceValues,
-      acceptedCategoryValues: leadCategoryValues,
-      acceptedUrgencyValues: leadUrgencyValues,
-    }),
-  );
+  try {
+    await connectToDatabase();
+    const actor = await getActorContext();
+    assertRoleAccess(actor.role, { oneOf: permissionRules.manageLeads });
+
+    return ok(
+      serializeForJson({
+        requiredColumns: ["contactName", "email"],
+        recommendedColumns: [
+          "title",
+          "phone",
+          "source",
+          "category",
+          "urgency",
+          "description",
+          "budgetMin",
+          "budgetMax",
+          "budgetCurrency",
+          "tags",
+        ],
+        acceptedSourceValues: leadSourceValues,
+        acceptedCategoryValues: leadCategoryValues,
+        acceptedUrgencyValues: leadUrgencyValues,
+      }),
+    );
+  } catch (error) {
+    return handleApiError(error);
+  }
 }

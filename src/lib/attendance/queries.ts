@@ -3,13 +3,14 @@ import { getAttendanceDateKey, getAttendanceMonthKey } from "@/lib/attendance/da
 import { attendanceMemberRoles } from "@/lib/attendance/constants";
 import {
   ensureLeaveBalanceForUser,
+  ensureMonthlyLeaveAccrualForStaffUsers,
   MONTHLY_LEAVE_ACCRUAL_DAYS,
 } from "@/lib/attendance/leave-balance";
 import { serializeForJson } from "@/lib/utils/serialize";
 import { AttendanceModel, LeaveRequestModel, UserModel } from "@/models";
 
 type AttendanceEntryForSummary = {
-  dayStatus?: "present" | "absent" | "half_day";
+  dayStatus?: AttendanceDayStatus;
   checkInAt?: Date | null;
   checkOutAt?: Date | null;
   workedMinutes?: number;
@@ -31,7 +32,7 @@ export type BreakSessionRecord = {
 export type AttendanceRecord = {
   _id: string;
   dateKey: string;
-  dayStatus?: "present" | "absent" | "half_day";
+  dayStatus?: AttendanceDayStatus;
   checkInAt?: string | null;
   checkOutAt?: string | null;
   workedMinutes?: number;
@@ -39,7 +40,7 @@ export type AttendanceRecord = {
   breakSessions?: BreakSessionRecord[];
 };
 
-export type AttendanceDayStatus = "present" | "absent" | "half_day";
+export type AttendanceDayStatus = "present" | "absent" | "half_day" | "late_coming";
 
 export type AttendanceCalendarDayRecord = {
   _id: string;
@@ -55,6 +56,7 @@ export type AttendanceCalendarMonthPayload = {
     presentDays: number;
     absentDays: number;
     halfDays: number;
+    lateComingDays: number;
     totalMarkedDays: number;
   };
   records: AttendanceCalendarDayRecord[];
@@ -66,6 +68,7 @@ export type AttendancePayload = {
   monthSummary: {
     presentDays: number;
     halfDays: number;
+    lateComingDays: number;
     absentDays: number;
     completedDays: number;
     workedMinutes: number;
@@ -125,7 +128,7 @@ export type AttendanceStaffUser = {
   _id: string;
   fullName: string;
   email: string;
-  role: "developer" | "sales";
+  role: "developer" | "sales" | "digital_marketing";
   status: string;
 };
 
@@ -138,7 +141,7 @@ export type AdminDailyAttendanceRecord = {
     role: string;
   };
   dateKey: string;
-  dayStatus: "present" | "absent" | "half_day";
+  dayStatus: AttendanceDayStatus;
   checkInAt?: string | null;
   checkOutAt?: string | null;
   workedMinutes?: number;
@@ -167,6 +170,7 @@ export type AdminMonthlyAttendanceRow = {
     presentDays: number;
     absentDays: number;
     halfDays: number;
+    lateComingDays: number;
     totalMarkedDays: number;
     workedMinutes: number;
     breakMinutes: number;
@@ -181,6 +185,7 @@ export type AdminMonthlyAttendancePayload = {
     presentDays: number;
     absentDays: number;
     halfDays: number;
+    lateComingDays: number;
     totalMarkedDays: number;
     workedMinutes: number;
     breakMinutes: number;
@@ -190,6 +195,7 @@ export type AdminMonthlyAttendancePayload = {
 
 export async function getAttendanceOverview(userId: string) {
   await connectToDatabase();
+  await ensureLeaveBalanceForUser(userId);
 
   const todayDateKey = getAttendanceDateKey();
   const monthDateKey = getAttendanceMonthKey();
@@ -212,6 +218,7 @@ export async function getAttendanceOverview(userId: string) {
   const monthSummary = (monthlyEntries as AttendanceEntryForSummary[]).reduce<{
     presentDays: number;
     halfDays: number;
+    lateComingDays: number;
     absentDays: number;
     completedDays: number;
     workedMinutes: number;
@@ -223,6 +230,9 @@ export async function getAttendanceOverview(userId: string) {
       }
       if (entry.dayStatus === "half_day") {
         summary.halfDays += 1;
+      }
+      if (entry.dayStatus === "late_coming") {
+        summary.lateComingDays += 1;
       }
       if (entry.dayStatus === "absent") {
         summary.absentDays += 1;
@@ -237,6 +247,7 @@ export async function getAttendanceOverview(userId: string) {
     {
       presentDays: 0,
       halfDays: 0,
+      lateComingDays: 0,
       absentDays: 0,
       completedDays: 0,
       workedMinutes: 0,
@@ -274,18 +285,21 @@ export async function getAttendanceCalendarMonth(userId: string, monthKey: strin
         acc.absentDays += 1;
       } else if (record.dayStatus === "half_day") {
         acc.halfDays += 1;
+      } else if (record.dayStatus === "late_coming") {
+        acc.lateComingDays += 1;
       }
 
       return acc;
     },
-    { presentDays: 0, absentDays: 0, halfDays: 0 },
+    { presentDays: 0, absentDays: 0, halfDays: 0, lateComingDays: 0 },
   );
 
   return serializeForJson({
     monthKey,
     summary: {
       ...summary,
-      totalMarkedDays: summary.presentDays + summary.absentDays + summary.halfDays,
+      totalMarkedDays:
+        summary.presentDays + summary.absentDays + summary.halfDays + summary.lateComingDays,
     },
     records,
   }) as AttendanceCalendarMonthPayload;
@@ -351,6 +365,7 @@ export async function getLeaveRequestsForUser(userId: string) {
 
 export async function getAttendanceStaffUsers() {
   await connectToDatabase();
+  await ensureMonthlyLeaveAccrualForStaffUsers();
 
   const users = await UserModel.find({
     role: { $in: attendanceMemberRoles },
@@ -450,6 +465,7 @@ export async function getAdminMonthlyAttendance(monthKey: string) {
         presentDays: 0,
         absentDays: 0,
         halfDays: 0,
+        lateComingDays: 0,
         totalMarkedDays: 0,
         workedMinutes: 0,
         breakMinutes: 0,
@@ -477,6 +493,7 @@ export async function getAdminMonthlyAttendance(monthKey: string) {
           presentDays: 0,
           absentDays: 0,
           halfDays: 0,
+          lateComingDays: 0,
           totalMarkedDays: 0,
           workedMinutes: 0,
           breakMinutes: 0,
@@ -500,6 +517,8 @@ export async function getAdminMonthlyAttendance(monthKey: string) {
       row.summary.absentDays += 1;
     } else if (record.dayStatus === "half_day") {
       row.summary.halfDays += 1;
+    } else if (record.dayStatus === "late_coming") {
+      row.summary.lateComingDays += 1;
     }
 
     row.summary.totalMarkedDays += 1;
@@ -518,6 +537,7 @@ export async function getAdminMonthlyAttendance(monthKey: string) {
       acc.presentDays += row.summary.presentDays;
       acc.absentDays += row.summary.absentDays;
       acc.halfDays += row.summary.halfDays;
+      acc.lateComingDays += row.summary.lateComingDays;
       acc.totalMarkedDays += row.summary.totalMarkedDays;
       acc.workedMinutes += row.summary.workedMinutes;
       acc.breakMinutes += row.summary.breakMinutes;
@@ -528,6 +548,7 @@ export async function getAdminMonthlyAttendance(monthKey: string) {
       presentDays: 0,
       absentDays: 0,
       halfDays: 0,
+      lateComingDays: 0,
       totalMarkedDays: 0,
       workedMinutes: 0,
       breakMinutes: 0,

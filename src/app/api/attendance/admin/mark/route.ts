@@ -42,7 +42,7 @@ export async function POST(request: Request) {
       return ok(serializeForJson(created), { status: 201 });
     }
 
-    if (payload.dayStatus !== "present") {
+    if (payload.dayStatus === "absent" || payload.dayStatus === "half_day") {
       existingRecord.checkInAt = null;
       existingRecord.checkOutAt = null;
       existingRecord.workedMinutes = 0;

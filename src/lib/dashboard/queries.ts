@@ -5,6 +5,7 @@ import {
   ClientModel,
   LeadModel,
   ProjectModel,
+  PasswordChangeRequestModel,
   PricingComponentModel,
   ProposalModel,
   ScopeManifestModel,
@@ -191,6 +192,34 @@ export async function getStaffUsers() {
     .select("fullName email role status lastLoginAt createdAt")
     .lean();
   return serializeForJson(users);
+}
+
+export async function getPasswordChangeRequests() {
+  await connectToDatabase();
+  const requests = await PasswordChangeRequestModel.find({})
+    .sort({ status: 1, createdAt: -1 })
+    .limit(100)
+    .populate("userId", "fullName email role")
+    .select("userId status createdAt reviewedAt reviewNote")
+    .lean();
+
+  return serializeForJson(
+    requests.map((request) => ({
+      id: String(request._id),
+      user: request.userId
+        ? {
+            id: String(request.userId._id),
+            fullName: request.userId.fullName,
+            email: request.userId.email,
+            role: request.userId.role,
+          }
+        : null,
+      status: request.status,
+      createdAt: request.createdAt,
+      reviewedAt: request.reviewedAt,
+      reviewNote: request.reviewNote ?? "",
+    })),
+  );
 }
 
 export async function getDevelopers() {

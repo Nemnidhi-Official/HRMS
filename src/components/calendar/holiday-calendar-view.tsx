@@ -170,6 +170,9 @@ function getAttendanceStatusBadge(status: AttendanceDayStatus) {
   if (status === "absent") {
     return { label: "Absent", shortLabel: "A", variant: "danger" as const };
   }
+  if (status === "late_coming") {
+    return { label: "Late Coming", shortLabel: "L", variant: "accent" as const };
+  }
   return { label: "Half Day", shortLabel: "H", variant: "warning" as const };
 }
 
@@ -179,6 +182,9 @@ function getAttendanceStatusPillClass(status: AttendanceDayStatus) {
   }
   if (status === "absent") {
     return "border border-[#e2b3ae] bg-[#faecea] text-[#a43c35]";
+  }
+  if (status === "late_coming") {
+    return "border border-[#c8c7e8] bg-[#f0effb] text-[#4b4797]";
   }
   return "border border-[#dec39d] bg-[#f8f1e4] text-[#8a5a1f]";
 }
@@ -282,10 +288,14 @@ export function HolidayCalendarView({
     return map;
   }, [holidayViews]);
 
-  const firstHolidayDate = holidayViews[0]?.date ?? new Date();
   const today = new Date();
-  const initialMonth = today.getFullYear() === firstHolidayDate.getFullYear() ? today : firstHolidayDate;
-  const initialDateKey = holidayViews[0]?.dateKey ?? toDateKey(today);
+  const firstHolidayDate = holidayViews[0]?.date ?? today;
+  const initialMonthSeed = today.getFullYear() === firstHolidayDate.getFullYear() ? today : firstHolidayDate;
+  const initialMonth = startOfMonth(initialMonthSeed);
+  const firstHolidayInInitialMonth = holidayViews.find((holiday) => isSameMonth(holiday.date, initialMonth));
+  const initialDate =
+    firstHolidayInInitialMonth?.date ?? (isSameMonth(today, initialMonth) ? today : initialMonth);
+  const initialDateKey = toDateKey(initialDate);
 
   const supportsLeaveApply = initialLeaveData !== null;
   const supportsAttendance = initialAttendanceData !== null;
@@ -316,7 +326,7 @@ export function HolidayCalendarView({
     reason: "",
   });
 
-  const [visibleMonth, setVisibleMonth] = useState<Date>(startOfMonth(initialMonth));
+  const [visibleMonth, setVisibleMonth] = useState<Date>(initialMonth);
   const [selectedDateKey, setSelectedDateKey] = useState<string>(initialDateKey);
   const [rangeSelection, setRangeSelection] = useState<DateRangeSelection>({
     startDateKey: initialDateKey,
@@ -398,6 +408,7 @@ export function HolidayCalendarView({
     presentDays: 0,
     absentDays: 0,
     halfDays: 0,
+    lateComingDays: 0,
     totalMarkedDays: 0,
   };
 
@@ -592,7 +603,7 @@ export function HolidayCalendarView({
   return (
     <div className="space-y-4">
       {supportsAttendance ? (
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
           <Card>
             <CardHeader>
               <CardTitle className="text-sm">Leave Balance</CardTitle>
@@ -631,6 +642,16 @@ export function HolidayCalendarView({
             </CardHeader>
             <CardContent>
               <p className="text-2xl font-semibold text-foreground">{attendanceSummary.halfDays}</p>
+              <p className="mt-1 text-xs text-muted-foreground">{monthTitleFormatter.format(visibleMonth)}</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm">Late Coming</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-2xl font-semibold text-foreground">{attendanceSummary.lateComingDays}</p>
               <p className="mt-1 text-xs text-muted-foreground">{monthTitleFormatter.format(visibleMonth)}</p>
             </CardContent>
           </Card>
@@ -756,6 +777,7 @@ export function HolidayCalendarView({
                             attendanceStatusBadge.variant === "success" && "bg-success",
                             attendanceStatusBadge.variant === "danger" && "bg-danger",
                             attendanceStatusBadge.variant === "warning" && "bg-warning",
+                            attendanceStatusBadge.variant === "accent" && "bg-accent",
                           )}
                           aria-hidden="true"
                         />
@@ -933,6 +955,7 @@ export function HolidayCalendarView({
             )}
           </CardContent>
         </Card>
+
       </div>
 
       {supportsLeaveApply ? (

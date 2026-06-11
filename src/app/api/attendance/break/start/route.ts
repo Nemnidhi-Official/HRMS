@@ -27,8 +27,8 @@ export async function PATCH() {
     if (!entry) {
       return fail("No active attendance found. Please check in first.", 404);
     }
-    if (entry.dayStatus !== "present") {
-      return fail("Break is only allowed when attendance is marked present.", 409);
+    if (entry.dayStatus !== "present" && entry.dayStatus !== "late_coming") {
+      return fail("Break is only allowed when attendance is marked present or late coming.", 409);
     }
     if (entry.checkOutAt) {
       return fail("You are already checked out for today.", 409);

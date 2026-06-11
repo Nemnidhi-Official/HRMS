@@ -21,16 +21,19 @@ export function handleApiError(error: unknown) {
   }
 
   if (error instanceof Error) {
-    if (error.message.includes("Unauthorized")) {
-      return fail(error.message, 401);
+    const message = error.message;
+    const normalizedMessage = message.toLowerCase();
+
+    if (normalizedMessage.includes("unauthorized")) {
+      return fail(message, 401);
     }
-    if (error.message.includes("Forbidden")) {
-      return fail(error.message, 403);
+    if (normalizedMessage.includes("forbidden")) {
+      return fail(message, 403);
     }
-    if (error.message.includes("not found")) {
-      return fail(error.message, 404);
+    if (normalizedMessage.includes("not found")) {
+      return fail(message, 404);
     }
-    return fail(error.message, 400);
+    return fail(message, 400);
   }
 
   return fail("Unexpected server error", 500);

@@ -13,7 +13,9 @@ import { requireRoleAccess } from "@/lib/auth/role-access";
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
-  const session = await requireRoleAccess(["admin", "sales"], { redirectTo: "/projects" });
+  const session = await requireRoleAccess(["admin", "sales", "digital_marketing"], {
+    redirectTo: "/projects",
+  });
 
   const metrics = (await getDashboardMetrics()) as {
     totalLeads: number;

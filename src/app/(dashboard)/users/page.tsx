@@ -3,15 +3,23 @@ import {
   UserManagementPanel,
   type StaffUserItem,
 } from "@/components/users/user-management-panel";
+import {
+  PasswordChangeRequestsPanel,
+  type PasswordChangeRequestItem,
+} from "@/components/users/password-change-requests-panel";
 import { requireRoleAccess } from "@/lib/auth/role-access";
-import { getStaffUsers } from "@/lib/dashboard/queries";
+import { getPasswordChangeRequests, getStaffUsers } from "@/lib/dashboard/queries";
 
 export const dynamic = "force-dynamic";
 
 export default async function UsersPage() {
   const session = await requireRoleAccess(["admin"]);
 
-  const users = (await getStaffUsers()) as Array<{
+  const [users, passwordChangeRequests] = (await Promise.all([
+    getStaffUsers(),
+    getPasswordChangeRequests(),
+  ])) as [
+    Array<{
     _id: string;
     fullName: string;
     email: string;
@@ -19,7 +27,9 @@ export default async function UsersPage() {
     status: StaffUserItem["status"];
     lastLoginAt?: string | null;
     createdAt?: string | null;
-  }>;
+    }>,
+    PasswordChangeRequestItem[],
+  ];
 
   const initialUsers: StaffUserItem[] = users.map((user) => ({
     id: user._id,
@@ -37,6 +47,7 @@ export default async function UsersPage() {
         title="User Access"
         subtitle="Admin-only staff access control for creating, updating, and deleting staff users."
       />
+      <PasswordChangeRequestsPanel initialRequests={passwordChangeRequests} />
       <UserManagementPanel initialUsers={initialUsers} currentUserId={session.userId} />
     </section>
   );

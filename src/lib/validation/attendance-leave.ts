@@ -17,7 +17,7 @@ export const leaveStatusValues = [
 
 export const reviewableLeaveStatusValues = ["approved", "rejected"] as const;
 
-export const attendanceDayStatusValues = ["present", "absent", "half_day"] as const;
+export const attendanceDayStatusValues = ["present", "absent", "half_day", "late_coming"] as const;
 
 const dateKeySchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date format");
 

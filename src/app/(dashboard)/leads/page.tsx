@@ -8,7 +8,7 @@ import { requireRoleAccess } from "@/lib/auth/role-access";
 export const dynamic = "force-dynamic";
 
 export default async function LeadsPage() {
-  await requireRoleAccess(["admin", "sales"]);
+  await requireRoleAccess(["admin", "sales", "digital_marketing"]);
 
   const leads = (await getLeads({ limit: 200 })) as Array<{
     _id: string;

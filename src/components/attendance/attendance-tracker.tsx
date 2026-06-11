@@ -69,6 +69,9 @@ function statusFromEntry(entry: AttendanceRecord | null) {
   if (entry.dayStatus === "half_day") {
     return { label: "Half Day", variant: "warning" as const };
   }
+  if (entry.dayStatus === "late_coming") {
+    return { label: "Late Coming", variant: "accent" as const };
+  }
   if (entry.checkOutAt) {
     return { label: "Checked Out", variant: "success" as const };
   }
@@ -179,7 +182,7 @@ export function AttendanceTracker({ initialData }: AttendanceTrackerProps) {
 
   return (
     <section className="space-y-4">
-      <div className="grid gap-4 md:grid-cols-3 xl:grid-cols-6">
+      <div className="grid gap-4 md:grid-cols-3 xl:grid-cols-7">
         <Card>
           <CardHeader>
             <CardTitle className="text-sm">Present Days (Month)</CardTitle>
@@ -212,6 +215,14 @@ export function AttendanceTracker({ initialData }: AttendanceTrackerProps) {
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-semibold text-foreground">{monthSummary.halfDays}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm">Late Coming (Month)</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-semibold text-foreground">{monthSummary.lateComingDays}</p>
           </CardContent>
         </Card>
         <Card>

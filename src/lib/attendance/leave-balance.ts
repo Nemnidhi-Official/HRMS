@@ -1,5 +1,6 @@
 import { getAttendanceMonthKey } from "@/lib/attendance/date";
-import { LeaveBalanceModel } from "@/models";
+import { attendanceMemberRoles } from "@/lib/attendance/constants";
+import { LeaveBalanceModel, UserModel } from "@/models";
 
 export const MONTHLY_LEAVE_ACCRUAL_DAYS = 2;
 
@@ -41,4 +42,14 @@ export async function ensureLeaveBalanceForUser(userId: string) {
   }
 
   return balance;
+}
+
+export async function ensureMonthlyLeaveAccrualForStaffUsers() {
+  const staffUsers = await UserModel.find({
+    role: { $in: attendanceMemberRoles },
+  })
+    .select("_id")
+    .lean();
+
+  await Promise.all(staffUsers.map((user) => ensureLeaveBalanceForUser(String(user._id))));
 }

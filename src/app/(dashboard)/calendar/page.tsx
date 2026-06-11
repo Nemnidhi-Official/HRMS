@@ -12,7 +12,7 @@ import { INDIA_HOLIDAYS_2026 } from "@/lib/calendar/india-holidays-2026";
 export const dynamic = "force-dynamic";
 
 export default async function CalendarPage() {
-  const session = await requireRoleAccess(["admin", "sales", "developer"]);
+  const session = await requireRoleAccess(["admin", "sales", "digital_marketing", "developer"]);
   const isAttendanceMember = attendanceMemberRoles.includes(session.role);
   const initialMonthKey = getAttendanceMonthKey();
 

@@ -4,6 +4,7 @@ export type UserRole =
   | "admin"
   | "partner"
   | "sales"
+  | "digital_marketing"
   | "project_manager"
   | "developer"
   | "client";
