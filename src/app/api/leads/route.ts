@@ -51,7 +51,6 @@ export async function POST(request: Request) {
     const lead = await LeadModel.create({
       ...payload,
       ...scoring,
-      ownerId: actor.userId,
     });
 
     await logActivity({

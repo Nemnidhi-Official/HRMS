@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { LeadAssignmentPanel } from "@/components/leads/lead-assignment-panel";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -167,7 +168,7 @@ function MailIcon() {
 type Params = Promise<{ id: string }>;
 
 export default async function LeadDetailPage({ params }: { params: Params }) {
-  await requireRoleAccess(["admin", "sales", "digital_marketing"]);
+  const session = await requireRoleAccess(["admin", "sales", "digital_marketing"]);
 
   const { id } = await params;
   await connectToDatabase();
@@ -310,6 +311,7 @@ export default async function LeadDetailPage({ params }: { params: Params }) {
 
   return (
     <section className="space-y-4">
+      <LeadAssignmentPanel leadId={id} role={session.role} />
       <div className="space-y-3 lg:hidden">
         <Link href="/leads" className="inline-flex items-center gap-1.5 text-xs font-medium text-vega-text-secondary">
           <ArrowLeft className="h-4 w-4" aria-hidden="true" />

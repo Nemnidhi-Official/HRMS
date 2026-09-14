@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "test:subtasks": "tsx scripts/validate-task-subtask-schemas.ts",
+    "test:lead-assignment": "tsx scripts/validate-lead-assignment.ts",
     "backup:db": "tsx --env-file=.env.local scripts/backup-database.ts",
     "preflight:migration": "tsx --env-file=.env.local scripts/preflight-migration.ts",
     "migrate:samvid": "tsx --env-file=.env.local scripts/migrate-samvid.ts",
