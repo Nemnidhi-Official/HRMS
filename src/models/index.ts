@@ -34,3 +34,4 @@ export { TaskModel } from "@/models/Task";
 export { TaskDependencyModel } from "@/models/TaskDependency";
 export { TaskWorkflowTemplateModel } from "@/models/TaskWorkflowTemplate";
 export { UserModel } from "@/models/User";
+export { SalesTargetModel } from "@/models/SalesTarget";

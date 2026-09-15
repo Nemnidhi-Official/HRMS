@@ -17,6 +17,7 @@ import {
   Settings,
   SquareCheckBig,
   Tag,
+  Target,
   User,
   Users,
 } from "lucide-react";
@@ -36,6 +37,7 @@ const iconMap = {
   Dashboard: House,
   Chat: MessageCircle,
   Leads: User,
+  "Sales Targets": Target,
   Clients: Building2,
   Tasks: SquareCheckBig,
   Meetings: Users,
