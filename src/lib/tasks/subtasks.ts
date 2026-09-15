@@ -43,9 +43,26 @@ export function canAssignTasksToOthers(role: string) {
   return (permissionRules.assignTasksToOthers as string[]).includes(role);
 }
 
+/**
+ * The id of a relation, whether or not it has been populated.
+ *
+ * These fields hold a raw ObjectId on a plain query and a full user document
+ * once .populate() has run. String() on the populated form yields
+ * "[object Object]", so a comparison against a user id silently failed - which
+ * is how the task detail page came to 404 for every developer, sales and
+ * digital-marketing user, including on their own tasks.
+ */
+export function refId(value: unknown): string {
+  if (!value) return "";
+  if (typeof value === "object" && value !== null && "_id" in value) {
+    return String((value as { _id: unknown })._id);
+  }
+  return String(value);
+}
+
 export function canAccessTask(actor: TaskActor, task: TaskAccessShape) {
   if (canAssignTasksToOthers(actor.role)) return true;
-  return String(task.assignedToUserId ?? "") === actor.userId || String(task.createdBy ?? "") === actor.userId;
+  return refId(task.assignedToUserId) === actor.userId || refId(task.createdBy) === actor.userId;
 }
 
 export async function assertCanAccessTask(actor: TaskActor, task: TaskAccessShape) {

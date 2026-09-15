@@ -207,6 +207,43 @@ async function main() {
     "the staff account only - the client duplicate must be gone",
   );
 
+  // --- The task detail page 404'd for every non-manager, including on their own
+  //     tasks: it loads the task with .populate(), and the access check compared
+  //     String(populatedUser) - "[object Object]" - against a user id.
+  const { getTaskDetailForUser } = await import("@/lib/tasks/queries");
+  const { canAccessTask, refId } = await import("@/lib/tasks/subtasks");
+
+  const owned = await TaskModel.create({
+    title: "Task 1", status: "NOT_STARTED",
+    assignedToUserId: dev._id, createdBy: dev._id, parentTaskId: null,
+  });
+
+  assert.equal(refId({ _id: dev._id, fullName: "x" }), String(dev._id), "refId must unwrap a populated ref");
+  assert.equal(refId(dev._id), String(dev._id), "refId must pass a raw id through");
+  assert.equal(refId(null), "", "refId must tolerate an empty ref");
+
+  // Populated exactly as the detail query returns it.
+  const populated = await TaskModel.findById(owned._id)
+    .populate("assignedToUserId", "fullName email role")
+    .lean();
+  assert.ok(
+    canAccessTask({ userId: String(dev._id), role: "developer" }, populated!),
+    "the assignee must pass the access check on a populated document",
+  );
+
+  const detail = await getTaskDetailForUser(String(owned._id), String(dev._id), "developer");
+  assert.ok(detail, "a developer must be able to open a task assigned to them - this was the 404");
+
+  // Someone unrelated still must not get in.
+  const stranger = await UserModel.create({
+    fullName: "Nosy Dev", email: "nosy@test.invalid", role: "developer", status: "active",
+  });
+  assert.equal(
+    await getTaskDetailForUser(String(owned._id), String(stranger._id), "developer"),
+    null,
+    "an unrelated developer must still be refused",
+  );
+
   await mongoose.connection.dropDatabase();
   await mongoose.disconnect();
   await service.close();

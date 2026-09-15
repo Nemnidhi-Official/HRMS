@@ -7,7 +7,7 @@ import { TaskDependencyModel, TaskModel } from "@/models";
 import { serializeForJson } from "@/lib/utils/serialize";
 import { logActivity } from "@/lib/activity/logging";
 import { notifyTaskAssigned, notifyTaskStatusChanged } from "@/lib/notifications/tasks";
-import { assertAssigneeIsStaff } from "@/lib/tasks/subtasks";
+import { assertAssigneeIsStaff, refId } from "@/lib/tasks/subtasks";
 import { getCompletionFields, normalizeTaskStatus } from "@/lib/tasks/status";
 import { recalculateSuccessorsForPredecessor } from "@/lib/tasks/dependencies";
 import { syncParentTaskProgress } from "@/lib/tasks/workflow-execution";
@@ -27,7 +27,9 @@ function canAssignOthers(role: string) {
 
 function canModify(actor: { userId: string; role: string }, task: { assignedToUserId: unknown; createdBy: unknown }) {
   if (canAssignOthers(actor.role)) return true;
-  return String(task.assignedToUserId) === actor.userId || String(task.createdBy) === actor.userId;
+  // refId, not String: these docs arrive populated, and String() on a populated
+  // ref gives "[object Object]", which never matches a user id.
+  return refId(task.assignedToUserId) === actor.userId || refId(task.createdBy) === actor.userId;
 }
 
 export async function GET(_request: Request, { params }: { params: Params }) {
