@@ -27,6 +27,7 @@ export { PricingPackageModel } from "@/models/PricingPackage";
 export { PricingTierModel } from "@/models/PricingTier";
 export { ProjectModel } from "@/models/Project";
 export { ProposalModel } from "@/models/Proposal";
+export { PushSubscriptionModel } from "@/models/PushSubscription";
 export { RateLimitEventModel } from "@/models/RateLimitEvent";
 export { ReportModel } from "@/models/Report";
 export { ScopeManifestModel } from "@/models/ScopeManifest";

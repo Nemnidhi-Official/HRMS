@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useId, useState } from "react";
 import { Bell, ChevronDown, Menu, Plus, Search } from "lucide-react";
+import { PushNotificationToggle } from "@/components/push/push-notification-toggle";
 import { LogoutButton } from "@/components/auth/logout-button";
 import { PageRefreshButton } from "@/components/dashboard/page-refresh-button";
 import {
@@ -135,6 +136,8 @@ export function DashboardTopNav({ role, userLabel }: DashboardTopNavProps) {
             <Plus className="h-4 w-4" strokeWidth={2} aria-hidden="true" />
             <span className="hidden sm:inline">New</span>
           </Link>
+
+          <PushNotificationToggle className="h-10 w-10" />
 
           <div className="relative">
             <button
