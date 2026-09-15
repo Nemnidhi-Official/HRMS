@@ -64,6 +64,15 @@ export function PushNotificationToggle({ className }: { className?: string }) {
           scope: "/",
           updateViaCache: "none",
         });
+
+        // Browsers only check for a new worker on their own schedule, which on an
+        // installed PWA that is resumed rather than relaunched can be a very long
+        // time - so a deploy that changes sw.js would keep being handled by the
+        // old one. Asking explicitly on every open makes a deploy actually land.
+        void registration.update().catch(() => {
+          // Offline or the check failed; the existing worker keeps running.
+        });
+
         const existing = await registration.pushManager.getSubscription();
         if (cancelled) return;
 

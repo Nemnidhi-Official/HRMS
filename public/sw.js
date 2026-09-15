@@ -1,6 +1,16 @@
 // Push handling for the HRMS PWA. Kept dependency-free and hand-written: the app
 // has no offline/caching requirement, only notifications.
 
+// Bumping this changes the worker's bytes, which is what makes a browser treat it
+// as a new version. Handy for confirming which build a device is actually running.
+const SW_VERSION = "2026-09-15.3-drawer-reply";
+
+self.addEventListener("message", (event) => {
+  if (event.data?.type === "version") {
+    event.source?.postMessage({ type: "version", version: SW_VERSION });
+  }
+});
+
 self.addEventListener("install", () => {
   // Take over without waiting for existing tabs to close, so a deploy that changes
   // this file starts handling pushes immediately.
