@@ -98,6 +98,8 @@ async function main() {
     body: "Standup at 10?",
     url: "/chat/abc",
     tag: "chat-abc",
+    // Drives the drawer reply box; the service worker only offers it when set.
+    replyTo: String(otherUserId),
   });
   assert.deepEqual(result, { sent: 2, failed: 0 });
   assert.equal(service.received.length, 2);

@@ -67,19 +67,78 @@ self.addEventListener("push", (event) => {
         icon: "/icon-192.png",
         badge: "/badge-72.png",
         tag: data.tag || undefined,
+        // Chromium renders a text action as an inline reply box in the drawer.
+        // Browsers without support ignore it and just show the notification.
+        actions: data.replyTo
+          ? [{ action: "reply", type: "text", title: "Reply", placeholder: "Message" }]
+          : [],
         // With a tag set, replace the previous notification rather than stacking
         // one row per message in a fast back-and-forth.
         renotify: Boolean(data.tag) && !alreadyWatching,
         silent: alreadyWatching,
         vibrate: alreadyWatching ? undefined : [80, 40, 80],
-        data: { url },
+        data: { url, replyTo: data.replyTo || null },
       });
     })(),
   );
 });
 
+/**
+ * Deliver a reply typed into the notification drawer.
+ *
+ * The session cookie is SameSite=Lax and this is a same-origin request, so
+ * credentials: "include" authenticates it as the signed-in user.
+ */
+async function sendDrawerReply(recipientId, message, url) {
+  try {
+    const response = await fetch("/api/chat/messages", {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ recipientId, message }),
+    });
+    const payload = await response.json().catch(() => null);
+    if (!response.ok || !payload || payload.success !== true) {
+      throw new Error((payload && payload.error && payload.error.message) || "HTTP " + response.status);
+    }
+
+    // Keep an open thread in step with what was just sent from the drawer.
+    const clientList = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+    for (const client of clientList) {
+      try {
+        client.postMessage({ type: "chat-message", url });
+      } catch {
+        // Tab went away; nothing to do.
+      }
+    }
+  } catch (error) {
+    // A reply that vanishes silently is worse than one that visibly failed - the
+    // sender would believe it was delivered. Hand the text back so it is not lost.
+    await self.registration.showNotification("Reply not sent", {
+      body: message,
+      icon: "/icon-192.png",
+      badge: "/badge-72.png",
+      tag: "chat-reply-failed",
+      requireInteraction: true,
+      data: { url },
+    });
+  }
+}
+
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
+
+  if (event.action === "reply") {
+    const message = (event.reply || "").trim();
+    const recipientId = event.notification.data && event.notification.data.replyTo;
+    // An empty reply box is a dismissal, not a message.
+    if (message && recipientId) {
+      event.waitUntil(
+        sendDrawerReply(recipientId, message, (event.notification.data || {}).url || "/"),
+      );
+    }
+    return;
+  }
 
   const target = new URL(event.notification.data?.url || "/", self.location.origin);
 

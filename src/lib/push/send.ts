@@ -23,6 +23,11 @@ export interface PushPayload {
    * of burying the rest of the user's notifications.
    */
   tag?: string;
+  /**
+   * User id a drawer reply should be sent to. Present only for notifications that
+   * can be answered; the service worker offers the reply box when it is set.
+   */
+  replyTo?: string;
 }
 
 /**

@@ -106,6 +106,8 @@ export async function POST(request: Request) {
       url: `/chat/${actor.userId}`,
       // One collapsing row per conversation instead of one per message.
       tag: `chat-${actor.userId}`,
+      // Lets the recipient answer straight from the notification drawer.
+      replyTo: actor.userId,
     }).catch((error) => console.error("chat push failed:", error));
 
     return ok(
