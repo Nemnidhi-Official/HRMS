@@ -6,6 +6,7 @@ import { fail, handleApiError, ok } from "@/lib/api/responses";
 import { TaskDependencyModel, TaskModel } from "@/models";
 import { serializeForJson } from "@/lib/utils/serialize";
 import { logActivity } from "@/lib/activity/logging";
+import { notifyTaskAssigned, notifyTaskStatusChanged } from "@/lib/notifications/tasks";
 import { getCompletionFields, normalizeTaskStatus } from "@/lib/tasks/status";
 import { recalculateSuccessorsForPredecessor } from "@/lib/tasks/dependencies";
 import { syncParentTaskProgress } from "@/lib/tasks/workflow-execution";
@@ -163,6 +164,28 @@ export async function PATCH(request: Request, { params }: { params: Params }) {
         entityId: String(task._id),
         details: { code: task.code ?? null, from: previousStatus, to: nextStatus },
       });
+
+      // Admins track progress; the person who just moved it does not need telling.
+      void notifyTaskStatusChanged({
+        taskId: String(task._id),
+        code: task.code ?? null,
+        title: task.title,
+        from: previousStatus,
+        to: nextStatus,
+        actorId: actor.userId,
+      }).catch((error) => console.error("task status notify failed:", error));
+    }
+
+    if (nextAssignee && nextAssignee !== previousAssignee) {
+      void notifyTaskAssigned({
+        taskId: String(task._id),
+        code: task.code ?? null,
+        title: task.title,
+        assignedToUserId: nextAssignee,
+        actorId: actor.userId,
+        dueAt: task.dueAt ?? null,
+        isNew: false,
+      }).catch((error) => console.error("task reassign notify failed:", error));
     }
 
     if (nextAssignee !== previousAssignee) {

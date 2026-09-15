@@ -137,6 +137,76 @@ async function main() {
     assert.equal(request.headers["content-encoding"], "aes128gcm");
   }
 
+  // ---------------------------------------------------------------- sweeps
+  const { sweepOverdueTasks } = await import("@/lib/notifications/tasks");
+  const { sweepOverdueFollowUps } = await import("@/lib/notifications/follow-ups");
+  const { getAssignableUsers } = await import("@/lib/tasks/queries");
+  const { TaskModel, LeadFollowUpModel, LeadModel, UserModel } = await import("@/models");
+
+  const dev = await UserModel.create({ fullName: "Dev Person", email: "dev@test.invalid", role: "developer", status: "active" });
+  const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
+
+  // --- An overdue top-level task notifies its assignee. The old sweep only ever
+  //     looked at subtasks, so these went unnoticed entirely.
+  await TaskModel.create({
+    title: "Ship the thing", status: "IN_PROGRESS", dueAt: yesterday,
+    assignedToUserId: dev._id, createdBy: dev._id, parentTaskId: null,
+  });
+  assert.equal(await sweepOverdueTasks(), 1, "one overdue task should be found");
+  assert.equal(
+    await NotificationModel.countDocuments({ recipientUserId: dev._id, type: "subtask_overdue" }),
+    1,
+    "the assignee should have been told",
+  );
+
+  // --- Re-running the same day must not pile up duplicates.
+  await sweepOverdueTasks();
+  assert.equal(
+    await NotificationModel.countDocuments({ recipientUserId: dev._id, type: "subtask_overdue" }),
+    1,
+    "a second sweep on the same day must not re-notify",
+  );
+
+  // --- A completed task is not overdue, however old its due date.
+  await TaskModel.create({
+    title: "Already done", status: "COMPLETED", dueAt: yesterday,
+    assignedToUserId: dev._id, createdBy: dev._id, parentTaskId: null,
+  });
+  assert.equal(await sweepOverdueTasks(), 1, "completed tasks must not be reported overdue");
+
+  // --- An overdue follow-up reminds the rep who owns it.
+  const followLead = await LeadModel.create({ title: "Acme Corp", source: "cold_outreach", ownerId: dev._id });
+  await LeadFollowUpModel.create({
+    leadId: followLead._id, status: "scheduled", dueAt: yesterday,
+    nextAction: "Call back about pricing", assignedToUserId: dev._id, createdById: dev._id,
+  });
+  assert.equal(await sweepOverdueFollowUps(), 1);
+  const followRow = await NotificationModel.findOne({
+    recipientUserId: dev._id, type: "due_date_approaching",
+  }).lean();
+  assert.ok(followRow, "follow-up reminder should exist");
+  assert.match(String(followRow.title), /Follow-up overdue/);
+  assert.equal(followRow.url, `/leads/${followLead._id}`, "should link to the lead");
+
+  // --- A completed follow-up is not chased.
+  await LeadFollowUpModel.updateMany({}, { $set: { status: "completed" } });
+  assert.equal(await sweepOverdueFollowUps(), 0, "closed follow-ups must not be chased");
+
+  // --- Clients must never appear in the staff assignee list. This is what put
+  //     the same person in the dropdown three times over.
+  await UserModel.create([
+    { fullName: "Dup Person", email: "staff@test.invalid", role: "sales", status: "active" },
+    { fullName: "Dup Person", email: "portal@test.invalid", role: "client", status: "active" },
+  ]);
+  const assignable = await getAssignableUsers("admin");
+  const roles = new Set(assignable.map((user: { role: string }) => user.role));
+  assert.ok(!roles.has("client"), "clients must not be assignable to internal tasks");
+  assert.equal(
+    assignable.filter((user: { fullName: string }) => user.fullName === "Dup Person").length,
+    1,
+    "the staff account only - the client duplicate must be gone",
+  );
+
   await mongoose.connection.dropDatabase();
   await mongoose.disconnect();
   await service.close();

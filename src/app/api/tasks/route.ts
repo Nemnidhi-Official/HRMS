@@ -5,6 +5,7 @@ import { handleApiError, ok } from "@/lib/api/responses";
 import { TaskModel } from "@/models";
 import { serializeForJson } from "@/lib/utils/serialize";
 import { logActivity } from "@/lib/activity/logging";
+import { notifyTaskAssigned } from "@/lib/notifications/tasks";
 import { generateTaskCode, generateSubtaskCode } from "@/lib/tasks/codes";
 import { getCompletionFields, normalizeTaskStatus } from "@/lib/tasks/status";
 import {
@@ -130,6 +131,18 @@ export async function POST(request: Request) {
       .populate("assignedToUserId", "fullName email role")
       .populate("createdBy", "fullName email role")
       .lean();
+
+    // Assigning work to someone is the whole point of the create dialog, and it
+    // previously told them nothing. Best-effort - the task is already saved.
+    void notifyTaskAssigned({
+      taskId: String(task._id),
+      code: task.code ?? null,
+      title: task.title,
+      assignedToUserId: task.assignedToUserId ? String(task.assignedToUserId) : null,
+      actorId: actor.userId,
+      dueAt: task.dueAt ?? null,
+      isNew: true,
+    }).catch((error) => console.error("task assign notify failed:", error));
 
     return ok(serializeForJson(hydrated), { status: 201 });
   } catch (error) {
