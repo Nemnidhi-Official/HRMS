@@ -7,6 +7,7 @@ import { getActorContext, assertRoleAccess, permissionRules } from "@/lib/auth/p
 import { handleApiError, ok } from "@/lib/api/responses";
 import { serializeForJson } from "@/lib/utils/serialize";
 import { logActivity } from "@/lib/activity/logging";
+import { notifyLeadCreated } from "@/lib/notifications/leads";
 
 export async function GET(request: Request) {
   try {
@@ -53,6 +54,17 @@ export async function POST(request: Request) {
       ...payload,
       ...scoring,
     });
+
+    // Round-robin assignment happens in the Lead pre-save hook, so the owner is
+    // only known once the document exists. Best-effort: the lead is already saved.
+    void notifyLeadCreated({
+      leadId: String(lead._id),
+      leadTitle: lead.title ?? "Lead",
+      ownerId: lead.ownerId ? String(lead.ownerId) : null,
+      actorId: actor.userId,
+      source: lead.source ?? null,
+      notifyAdmins: false,
+    }).catch((error) => console.error("lead created notify failed:", error));
 
     await logActivity({
       action: "lead_status_changed",

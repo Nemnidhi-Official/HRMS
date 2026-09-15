@@ -2,6 +2,7 @@ import { assertSalesLeadAccess } from "@/lib/leads/access";
 import { LeadModel, UserModel } from "@/models";
 import { ApiError } from "@/lib/api/responses";
 import { assertRoleAccess } from "@/lib/auth/permissions";
+import { notifyLeadAssigned } from "@/lib/notifications/leads";
 import type { UserRole } from "@/types/user";
 
 export async function changeLeadOwner(id: string, payload: { ownerId: string; expectedOwnerId: string | null }, actor: { userId: string; role: UserRole }) {
@@ -18,10 +19,22 @@ export async function changeLeadOwner(id: string, payload: { ownerId: string; ex
         method: actor.role === "admin" ? "manual" : "transfer", at: new Date(),
       } } },
       { returnDocument: "after", runValidators: true },
-    ).select("ownerId");
+    ).select("ownerId title");
     if (!lead) {
       if (!await LeadModel.exists({ _id: id })) throw new ApiError("Lead not found", 404);
       throw new ApiError("Assignment changed. Refresh and try again.", 409);
     }
+
+    // Best-effort: the reassignment has already happened and must stand whether
+    // or not anyone can be told about it.
+    void notifyLeadAssigned({
+      leadId: id,
+      leadTitle: lead.title ?? "Lead",
+      newOwnerId: payload.ownerId,
+      previousOwnerId: payload.expectedOwnerId,
+      actorId: actor.userId,
+      byAdmin: actor.role === "admin",
+    }).catch((error) => console.error("lead assignment notify failed:", error));
+
     return lead;
 }

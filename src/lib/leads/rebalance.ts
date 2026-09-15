@@ -4,6 +4,7 @@ import { LeadModel, UserModel } from "@/models";
 import { ApiError } from "@/lib/api/responses";
 import { assertRoleAccess } from "@/lib/auth/permissions";
 import type { LeadActor } from "./access";
+import { notifyLeadsRebalanced } from "@/lib/notifications/leads";
 
 export const openLeadFilter = { status: { $nin: ["closed_won", "closed_lost", "invalid", "wrong_number", "not_interested"] } };
 type Row = { id: string; ownerId: string | null; status: string; updatedAt: string };
@@ -61,6 +62,19 @@ export async function rebalanceLeads(actor: LeadActor, token: string) {
       filter: { _id: lead.id, ownerId: lead.ownerId, status: lead.status, updatedAt: lead.updatedAt ? new Date(lead.updatedAt) : { $exists: false } },
       update: { $set: { ownerId: new Types.ObjectId(to) }, $push: { assignmentHistory: { from: lead.ownerId ? new Types.ObjectId(lead.ownerId) : null, to: new Types.ObjectId(to), actorId: new Types.ObjectId(actor.userId), method: "rebalance", at } } },
     } })));
+    // One summary per affected salesperson. A rebalance can move dozens of leads
+    // at once, and a notification per lead would be unusable.
+    if (result.modifiedCount > 0) {
+      const movesByOwner = new Map<string, { count: number; sampleLeadId: string }>();
+      for (const { lead, to } of plan.moves) {
+        const existing = movesByOwner.get(to);
+        if (existing) existing.count += 1;
+        else movesByOwner.set(to, { count: 1, sampleLeadId: lead.id });
+      }
+      void notifyLeadsRebalanced({ movesByOwner, actorId: actor.userId, at })
+        .catch((error) => console.error("rebalance notify failed:", error));
+    }
+
     return { total: plan.total, moved: result.modifiedCount, skipped: plan.moves.length - result.modifiedCount };
   } finally { await locks.deleteOne({ _id: "sales", token: lockToken }); }
 }

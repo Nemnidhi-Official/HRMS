@@ -19,6 +19,19 @@ interface DashboardTopNavProps {
   userLabel: string;
 }
 
+/**
+ * Notifications used to be task-only, so the link was built as /tasks/<entityId>.
+ * They now cover leads too, and each row stores the destination it was raised
+ * with - the same one its push notification opens. Rows written before that
+ * field existed still have to resolve, hence the task fallback.
+ */
+function notificationHref(item: WorkflowNotification, fallback: string) {
+  if (item.url) return item.url;
+  if (item.entityType === "lead" && item.entityId) return `/leads/${item.entityId}`;
+  if (item.entityId) return `/tasks/${item.entityId}`;
+  return fallback;
+}
+
 type WorkflowNotification = {
   _id: string;
   title: string;
@@ -26,6 +39,8 @@ type WorkflowNotification = {
   readAt?: string | null;
   createdAt?: string;
   entityId?: string;
+  entityType?: "task" | "lead";
+  url?: string;
 };
 
 async function fetchNotifications() {
@@ -163,12 +178,12 @@ export function DashboardTopNav({ role, userLabel }: DashboardTopNavProps) {
                   {notificationsError ? (
                     <p className="px-3 py-4 text-xs text-vega-red">{notificationsError}</p>
                   ) : notifications.length === 0 ? (
-                    <p className="px-3 py-4 text-xs text-vega-text-muted">No workflow notifications yet.</p>
+                    <p className="px-3 py-4 text-xs text-vega-text-muted">Nothing new right now.</p>
                   ) : (
                     notifications.map((item) => (
                       <Link
                         key={item._id}
-                        href={item.entityId ? `/tasks/${item.entityId}` : pathname}
+                        href={notificationHref(item, pathname)}
                         className="block border-b border-vega-border-soft px-3 py-2.5 transition-colors hover:bg-vega-surface-hover"
                         onClick={() => setNotificationsOpen(false)}
                       >

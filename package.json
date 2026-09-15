@@ -33,7 +33,8 @@
     "migrate:project-tasks": "tsx --env-file=.env.local scripts/migrate-project-tasks.ts",
     "test:task-import": "tsx scripts/validate-task-import.ts",
     "test:audit-fixes": "tsx scripts/validate-audit-fixes.ts",
-    "test:push": "tsx scripts/validate-push-notifications.ts"
+    "test:push": "tsx scripts/validate-push-notifications.ts",
+    "test:notifications": "tsx scripts/validate-notification-dispatch.ts"
   },
   "dependencies": {
     "@react-pdf/renderer": "^4.6.0",
