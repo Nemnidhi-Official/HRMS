@@ -42,19 +42,45 @@ function setAutoPromptsUsed(count: number) {
   }
 }
 
-type State = "checking" | "unsupported" | "off" | "on" | "blocked";
+type State = "checking" | "unsupported" | "off" | "on" | "blocked" | "needs-install";
+
+/**
+ * iOS only delivers Web Push to a PWA opened from the Home Screen - a Safari tab
+ * gets nothing, and PushManager is not even defined there. Without this check the
+ * component silently rendered nothing on an iPhone, so there was no way to learn
+ * that installing is the missing step.
+ */
+function isIOS() {
+  return /iPad|iPhone|iPod/.test(navigator.userAgent);
+}
+
+function isStandalone() {
+  return (
+    window.matchMedia("(display-mode: standalone)").matches ||
+    // Safari's own, non-standard flag - the only reliable signal on iOS.
+    (window.navigator as Navigator & { standalone?: boolean }).standalone === true
+  );
+}
 
 export function PushNotificationToggle({ className }: { className?: string }) {
   const [state, setState] = useState<State>("checking");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [showInstallHelp, setShowInstallHelp] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
 
     async function init() {
       if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
-        if (!cancelled) setState("unsupported");
+        // On iOS this is the normal state in a browser tab, and it is fixable by
+        // installing - so say so instead of hiding.
+        if (!cancelled) setState(isIOS() && !isStandalone() ? "needs-install" : "unsupported");
+        return;
+      }
+
+      if (isIOS() && !isStandalone()) {
+        if (!cancelled) setState("needs-install");
         return;
       }
 
@@ -189,6 +215,32 @@ export function PushNotificationToggle({ className }: { className?: string }) {
   }, []);
 
   if (state === "checking" || state === "unsupported") return null;
+
+  if (state === "needs-install") {
+    return (
+      <button
+        type="button"
+        onClick={() => setShowInstallHelp((open) => !open)}
+        aria-label="How to turn on notifications on iPhone"
+        className={cn(
+          "relative inline-flex h-9 w-9 items-center justify-center rounded-md text-vega-text-secondary transition hover:bg-vega-surface-hover",
+          className,
+        )}
+      >
+        <BellOff className="h-5 w-5" strokeWidth={1.8} aria-hidden="true" />
+        {showInstallHelp ? (
+          <span className="absolute right-0 top-11 z-50 w-64 rounded-lg border border-vega-border bg-[#0a141f] p-3 text-left shadow-xl">
+            <span className="block text-xs font-semibold text-vega-text">Turn on notifications</span>
+            <span className="mt-1 block text-[11px] leading-relaxed text-vega-text-muted">
+              On iPhone, notifications only work once this app is on your Home Screen.
+              Tap Share, then <strong className="text-vega-text">Add to Home Screen</strong>,
+              open it from there, and tap this bell again. Needs iOS 16.4 or newer.
+            </span>
+          </span>
+        ) : null}
+      </button>
+    );
+  }
 
   const label =
     state === "blocked"
