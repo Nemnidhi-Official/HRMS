@@ -21,20 +21,60 @@ self.addEventListener("push", (event) => {
     data = { title: "HRMS", body: event.data.text(), url: "/" };
   }
 
-  // Android requires every push to show a notification (userVisibleOnly), or it
-  // will eventually revoke the subscription - so there is no early return here.
+  const url = data.url || "/";
+
   event.waitUntil(
-    self.registration.showNotification(data.title || "HRMS", {
-      body: data.body || "",
-      icon: "/icon-192.png",
-      badge: "/badge-72.png",
-      tag: data.tag || undefined,
-      // With a tag set, replace the previous notification silently rather than
-      // buzzing once per message in a fast back-and-forth.
-      renotify: Boolean(data.tag),
-      vibrate: [80, 40, 80],
-      data: { url: data.url || "/" },
-    }),
+    (async () => {
+      let clientList = [];
+      try {
+        clientList = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+      } catch {
+        clientList = [];
+      }
+
+      // Tell any open tab a message landed so the thread updates immediately
+      // rather than waiting out its poll interval.
+      for (const client of clientList) {
+        try {
+          client.postMessage({ type: "chat-message", url });
+        } catch {
+          // A tab that has gone away simply never hears it.
+        }
+      }
+
+      // If this conversation is already on screen and focused, the message is
+      // visible the moment the line above lands - so buzzing the phone for it is
+      // just noise. The notification is still shown, because userVisibleOnly
+      // requires one and skipping it eventually costs the subscription; it is
+      // shown silently instead.
+      let target;
+      try {
+        target = new URL(url, self.location.origin).pathname;
+      } catch {
+        target = null;
+      }
+      const alreadyWatching = clientList.some((client) => {
+        if (!client.focused || !target) return false;
+        try {
+          return new URL(client.url).pathname === target;
+        } catch {
+          return false;
+        }
+      });
+
+      await self.registration.showNotification(data.title || "HRMS", {
+        body: data.body || "",
+        icon: "/icon-192.png",
+        badge: "/badge-72.png",
+        tag: data.tag || undefined,
+        // With a tag set, replace the previous notification rather than stacking
+        // one row per message in a fast back-and-forth.
+        renotify: Boolean(data.tag) && !alreadyWatching,
+        silent: alreadyWatching,
+        vibrate: alreadyWatching ? undefined : [80, 40, 80],
+        data: { url },
+      });
+    })(),
   );
 });
 
