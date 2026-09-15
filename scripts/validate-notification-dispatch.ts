@@ -244,6 +244,50 @@ async function main() {
     "an unrelated developer must still be refused",
   );
 
+  // --- Moving a task along tells the admins, but not the person who moved it.
+  const { notifyTaskStatusChanged } = await import("@/lib/notifications/tasks");
+  const admin = await UserModel.create({
+    fullName: "Boss", email: "boss@test.invalid", role: "admin", status: "active",
+  });
+  await NotificationModel.deleteMany({ recipientUserId: admin._id });
+
+  await notifyTaskStatusChanged({
+    taskId: String(owned._id), code: "T-1", title: "Task 1",
+    from: "NOT_STARTED", to: "IN_PROGRESS", actorId: String(dev._id),
+  });
+  assert.equal(
+    await NotificationModel.countDocuments({ recipientUserId: admin._id }),
+    1,
+    "admins should be told when a task moves",
+  );
+  assert.equal(
+    await NotificationModel.countDocuments({ recipientUserId: dev._id, type: "workflow_changed" }),
+    0,
+    "the person who changed it must not be notified about their own action",
+  );
+
+  // Toggling to the same status again in the same minute must not spam.
+  await notifyTaskStatusChanged({
+    taskId: String(owned._id), code: "T-1", title: "Task 1",
+    from: "IN_PROGRESS", to: "IN_PROGRESS", actorId: String(dev._id),
+  });
+  assert.equal(
+    await NotificationModel.countDocuments({ recipientUserId: admin._id }),
+    1,
+    "repeated changes to the same status must collapse",
+  );
+
+  // A different status is a real event and does notify.
+  await notifyTaskStatusChanged({
+    taskId: String(owned._id), code: "T-1", title: "Task 1",
+    from: "IN_PROGRESS", to: "COMPLETED", actorId: String(dev._id),
+  });
+  assert.equal(
+    await NotificationModel.countDocuments({ recipientUserId: admin._id }),
+    2,
+    "a genuine later change should notify again",
+  );
+
   await mongoose.connection.dropDatabase();
   await mongoose.disconnect();
   await service.close();

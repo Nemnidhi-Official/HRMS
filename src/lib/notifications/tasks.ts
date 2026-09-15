@@ -78,8 +78,11 @@ export async function notifyTaskStatusChanged(input: {
     entityType: "task",
     entityId: input.taskId,
     url: taskUrl(input.taskId),
-    // One per status transition, so a flip back and forth is not swallowed.
-    dedupeKey: `task_status:${input.taskId}:${input.from}->${input.to}:${Date.now()}`,
+    // A genuine later change should notify again, so the key is not just the
+    // transition - but Date.now() would make every key unique and let someone
+    // toggling a dropdown spam every admin. Bucketed to the minute: repeated
+    // changes while someone makes up their mind collapse into one.
+    dedupeKey: `task_status:${input.taskId}:${input.to}:${new Date().toISOString().slice(0, 16)}`,
     metadata: { from: input.from, to: input.to },
   });
 }
