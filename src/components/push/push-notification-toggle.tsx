@@ -16,6 +16,32 @@ function urlBase64ToUint8Array(base64String: string) {
   return output;
 }
 
+/**
+ * Chrome stops showing the permission prompt for good once a user has dismissed
+ * it a few times, and that state is not recoverable from inside the page. So the
+ * automatic ask on app open is budgeted: after this many dismissals we stop
+ * asking and leave the bell as the way in, which keeps the permission reachable.
+ */
+const AUTO_PROMPT_BUDGET = 2;
+const AUTO_PROMPT_KEY = "hrms:push-auto-prompts";
+
+function autoPromptsUsed() {
+  try {
+    return Number(window.localStorage.getItem(AUTO_PROMPT_KEY) ?? "0") || 0;
+  } catch {
+    // Private window or blocked storage: we cannot count, so do not auto-ask.
+    return AUTO_PROMPT_BUDGET;
+  }
+}
+
+function setAutoPromptsUsed(count: number) {
+  try {
+    window.localStorage.setItem(AUTO_PROMPT_KEY, String(count));
+  } catch {
+    // Nothing to do - the budget just will not persist.
+  }
+}
+
 type State = "checking" | "unsupported" | "off" | "on" | "blocked";
 
 export function PushNotificationToggle({ className }: { className?: string }) {
@@ -70,12 +96,13 @@ export function PushNotificationToggle({ className }: { className?: string }) {
     };
   }, []);
 
-  const enable = useCallback(async () => {
+  const enable = useCallback(async ({ auto = false } = {}) => {
     setBusy(true);
     setError("");
     try {
-      // Must stay inside the click handler's task - Chrome ignores a permission
-      // request that is not tied to a user gesture.
+      // Safari and Firefox only honour this inside a user gesture, so the
+      // automatic ask is best-effort there and the bell remains the real path.
+      // Chrome shows it on load, which is what makes the auto-prompt work.
       const permission = await Notification.requestPermission();
       if (permission === "denied") {
         setState("blocked");
@@ -104,13 +131,31 @@ export function PushNotificationToggle({ className }: { className?: string }) {
         throw new Error(payload?.error?.message ?? "Could not save the subscription.");
       }
 
+      setAutoPromptsUsed(0);
       setState("on");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not enable notifications.");
+      // A refused auto-ask is an expected outcome, not something to shout about.
+      if (!auto) setError(e instanceof Error ? e.message : "Could not enable notifications.");
     } finally {
       setBusy(false);
     }
   }, []);
+
+  // Ask on first open instead of waiting for the bell to be noticed. Deliberately
+  // after a short delay: a prompt thrown over a still-blank screen reads as spam
+  // and gets dismissed, and every dismissal spends the budget above.
+  useEffect(() => {
+    if (state !== "off" || Notification.permission !== "default") return;
+
+    const used = autoPromptsUsed();
+    if (used >= AUTO_PROMPT_BUDGET) return;
+
+    const timer = setTimeout(() => {
+      setAutoPromptsUsed(used + 1);
+      void enable({ auto: true });
+    }, 1500);
+    return () => clearTimeout(timer);
+  }, [state, enable]);
 
   const disable = useCallback(async () => {
     setBusy(true);
