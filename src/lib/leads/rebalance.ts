@@ -5,6 +5,7 @@ import { ApiError } from "@/lib/api/responses";
 import { assertRoleAccess } from "@/lib/auth/permissions";
 import type { LeadActor } from "./access";
 import { notifyLeadsRebalanced } from "@/lib/notifications/leads";
+import { reassignOpenFollowUps } from "@/lib/notifications/follow-ups";
 
 export const openLeadFilter = { status: { $nin: ["closed_won", "closed_lost", "invalid", "wrong_number", "not_interested"] } };
 type Row = { id: string; ownerId: string | null; status: string; updatedAt: string };
@@ -62,6 +63,12 @@ export async function rebalanceLeads(actor: LeadActor, token: string) {
       filter: { _id: lead.id, ownerId: lead.ownerId, status: lead.status, updatedAt: lead.updatedAt ? new Date(lead.updatedAt) : { $exists: false } },
       update: { $set: { ownerId: new Types.ObjectId(to) }, $push: { assignmentHistory: { from: lead.ownerId ? new Types.ObjectId(lead.ownerId) : null, to: new Types.ObjectId(to), actorId: new Types.ObjectId(actor.userId), method: "rebalance", at } } },
     } })));
+    // Each moved lead takes its open follow-ups with it, for the same reason a
+    // single transfer does.
+    await Promise.all(
+      plan.moves.map(({ lead, to }) => reassignOpenFollowUps(lead.id, to)),
+    );
+
     // One summary per affected salesperson. A rebalance can move dozens of leads
     // at once, and a notification per lead would be unusable.
     if (result.modifiedCount > 0) {

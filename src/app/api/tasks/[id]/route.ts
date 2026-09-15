@@ -7,6 +7,7 @@ import { TaskDependencyModel, TaskModel } from "@/models";
 import { serializeForJson } from "@/lib/utils/serialize";
 import { logActivity } from "@/lib/activity/logging";
 import { notifyTaskAssigned, notifyTaskStatusChanged } from "@/lib/notifications/tasks";
+import { assertAssigneeIsStaff } from "@/lib/tasks/subtasks";
 import { getCompletionFields, normalizeTaskStatus } from "@/lib/tasks/status";
 import { recalculateSuccessorsForPredecessor } from "@/lib/tasks/dependencies";
 import { syncParentTaskProgress } from "@/lib/tasks/workflow-execution";
@@ -78,6 +79,7 @@ export async function PATCH(request: Request, { params }: { params: Params }) {
 
     if (payload.assignedToUserId && payload.assignedToUserId !== previousAssignee) {
       assertRoleAccess(actor.role, { oneOf: permissionRules.assignTasksToOthers });
+      await assertAssigneeIsStaff(payload.assignedToUserId);
       task.assignedToUserId = payload.assignedToUserId as unknown as typeof task.assignedToUserId;
     }
 

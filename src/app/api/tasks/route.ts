@@ -6,6 +6,7 @@ import { TaskModel } from "@/models";
 import { serializeForJson } from "@/lib/utils/serialize";
 import { logActivity } from "@/lib/activity/logging";
 import { notifyTaskAssigned } from "@/lib/notifications/tasks";
+import { assertAssigneeIsStaff } from "@/lib/tasks/subtasks";
 import { generateTaskCode, generateSubtaskCode } from "@/lib/tasks/codes";
 import { getCompletionFields, normalizeTaskStatus } from "@/lib/tasks/status";
 import {
@@ -62,6 +63,8 @@ export async function POST(request: Request) {
 
     const payload = createTaskSchema.parse(await request.json());
     const assignedToUserId = payload.assignedToUserId ?? actor.userId;
+
+    await assertAssigneeIsStaff(assignedToUserId);
 
     if (assignedToUserId !== actor.userId) {
       assertRoleAccess(actor.role, { oneOf: permissionRules.assignTasksToOthers });

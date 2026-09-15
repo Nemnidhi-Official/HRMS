@@ -64,6 +64,37 @@ export function assertCanAssignSubtask(actor: TaskActor, assignedToUserId?: stri
   assertRoleAccess(actor.role, { oneOf: permissionRules.assignTasksToOthers });
 }
 
+/** Roles that may hold a task. Client is externally held and must never be one. */
+export const TASK_ASSIGNABLE_ROLES: UserRole[] = [
+  "admin",
+  "partner",
+  "project_manager",
+  "developer",
+  "sales",
+  "digital_marketing",
+];
+
+/**
+ * A task may only be assigned to internal staff.
+ *
+ * The assignee dropdown used to list client accounts, so tasks were genuinely
+ * assigned to customers. Those people were then notified about work they cannot
+ * open - the tasks area rejects the client role - which is what produced 404s
+ * from the notification. Filtering the dropdown is not enough on its own: the id
+ * arrives in the request body, so the rule has to hold at the API.
+ */
+export async function assertAssigneeIsStaff(assignedToUserId?: string | null) {
+  if (!assignedToUserId) return;
+  const user = await TaskModel.db.model("User")
+    .findById(assignedToUserId)
+    .select("role status")
+    .lean<{ role?: string; status?: string } | null>();
+  if (!user) throw new Error("Assignee not found");
+  if (user.status !== "active" || !TASK_ASSIGNABLE_ROLES.includes(user.role as UserRole)) {
+    throw new Error("Tasks can only be assigned to active staff");
+  }
+}
+
 /**
  * These three take the *whole* array on every update, because that is the shape the PATCH
  * routes accept. That makes preserving what is already stored their responsibility: an entry

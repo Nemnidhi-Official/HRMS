@@ -34,7 +34,8 @@
     "test:task-import": "tsx scripts/validate-task-import.ts",
     "test:audit-fixes": "tsx scripts/validate-audit-fixes.ts",
     "test:push": "tsx scripts/validate-push-notifications.ts",
-    "test:notifications": "tsx scripts/validate-notification-dispatch.ts"
+    "test:notifications": "tsx scripts/validate-notification-dispatch.ts",
+    "repair:notification-targets": "tsx --env-file=.env.local scripts/repair-notification-targets.ts"
   },
   "dependencies": {
     "@react-pdf/renderer": "^4.6.0",

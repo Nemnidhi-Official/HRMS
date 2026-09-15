@@ -51,3 +51,19 @@ export async function sweepOverdueFollowUps() {
 
   return overdue.length;
 }
+
+/**
+ * Hand a lead's open follow-ups to its new owner.
+ *
+ * Without this, a transfer or rebalance leaves follow-ups assigned to the
+ * previous rep - who, being sales, can no longer even open the lead. They then
+ * get an overdue reminder that 404s, and the new owner never learns the
+ * follow-up exists.
+ */
+export async function reassignOpenFollowUps(leadId: string, newOwnerId: string) {
+  const result = await LeadFollowUpModel.updateMany(
+    { leadId, status: "scheduled", assignedToUserId: { $ne: newOwnerId } },
+    { $set: { assignedToUserId: newOwnerId } },
+  );
+  return result.modifiedCount;
+}
