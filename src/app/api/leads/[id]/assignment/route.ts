@@ -1,3 +1,4 @@
+import { assertSalesLeadAccess } from "@/lib/leads/access";
 import { changeLeadOwner } from "@/lib/leads/transfer";
 import { z } from "zod";
 import { connectToDatabase } from "@/lib/db/mongodb";
@@ -16,6 +17,7 @@ export async function GET(_: Request, { params }: Context) {
     const actor = await getActorContext();
     assertRoleAccess(actor.role, { oneOf: permissionRules.manageLeads });
     const { id } = await params;
+    await assertSalesLeadAccess(actor, id);
     objectId.parse(id);
     const lead = await LeadModel.findById(id).select("ownerId assignmentHistory").lean();
     if (!lead) throw new ApiError("Lead not found", 404);
@@ -32,6 +34,7 @@ export async function PATCH(request: Request, { params }: Context) {
     const actor = await getActorContext();
     assertRoleAccess(actor.role, { oneOf: ["admin", "sales"] });
     const { id } = await params;
+    await assertSalesLeadAccess(actor, id);
     objectId.parse(id);
     const payload = assignmentSchema.parse(await request.json());
     const lead = await changeLeadOwner(id, payload, actor);

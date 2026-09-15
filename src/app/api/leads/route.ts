@@ -1,3 +1,4 @@
+import { leadVisibilityFilter } from "@/lib/leads/access";
 import { connectToDatabase } from "@/lib/db/mongodb";
 import { LeadModel } from "@/models";
 import { createLeadSchema } from "@/lib/validation/lead";
@@ -22,7 +23,7 @@ export async function GET(request: Request) {
       ? Math.min(Math.max(requestedLimit, 1), 500)
       : 300;
 
-    const query: Record<string, string> = {};
+    const query: Record<string, unknown> = { ...leadVisibilityFilter(actor) };
     if (status) query.status = status;
     if (priorityBand) query.priorityBand = priorityBand;
     if (category) query.category = category;

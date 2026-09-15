@@ -44,6 +44,7 @@ export function LeadAssignmentPanel({ leadId, role }: { leadId: string; role: st
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error?.message || "Assignment failed");
+      if (role === "sales") { router.replace("/leads"); router.refresh(); return; }
       await load(); router.refresh(); setMessage("Lead assignment updated.");
     } catch (error) { setError(error instanceof Error ? error.message : "Assignment failed"); }
     finally { setBusy(false); }

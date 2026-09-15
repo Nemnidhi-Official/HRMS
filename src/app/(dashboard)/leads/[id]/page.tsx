@@ -1,3 +1,4 @@
+import { leadVisibilityFilter } from "@/lib/leads/access";
 import { notFound } from "next/navigation";
 import { LeadAssignmentPanel } from "@/components/leads/lead-assignment-panel";
 import Link from "next/link";
@@ -173,7 +174,7 @@ export default async function LeadDetailPage({ params }: { params: Params }) {
   const { id } = await params;
   await connectToDatabase();
 
-  const leadDoc = await LeadModel.findById(id)
+  const leadDoc = await LeadModel.findOne({ _id: id, ...leadVisibilityFilter(session) })
     .select(
       "title contactName email phone source sourceDomain sourcePath sourceReferrer category urgency score priorityBand priorityFlag status description budget tags prospecting createdAt updatedAt",
     )

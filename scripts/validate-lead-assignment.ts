@@ -39,7 +39,7 @@ async function main() {
   await assert.rejects(changeLeadOwner(String(lead._id), { ownerId: String(other._id), expectedOwnerId: previousOwner }, actor), /Assignment changed/);
   await assert.rejects(changeLeadOwner(String(lead._id), { ownerId: String(admin._id), expectedOwnerId: String(recipient._id) }, actor), /active salesperson/);
   await assert.rejects(changeLeadOwner(String(lead._id), { ownerId: String(other._id), expectedOwnerId: String(recipient._id) }, { ...actor, role: "digital_marketing" }), /Forbidden/);
-  await changeLeadOwner(String(lead._id), { ownerId: String(other._id), expectedOwnerId: String(recipient._id) }, { userId: String(sales[2]._id), role: "sales" });
+  await changeLeadOwner(String(lead._id), { ownerId: String(other._id), expectedOwnerId: String(recipient._id) }, { userId: String(recipient._id), role: "sales" });
   const updated = await LeadModel.findById(lead._id);
   assert.equal(updated.assignmentHistory.at(-1).method, "transfer");
   assert.equal(updated.assignmentHistory.at(-2).method, "manual");

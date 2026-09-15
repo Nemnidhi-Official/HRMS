@@ -243,11 +243,17 @@ const leadSchema = new Schema(
     },
     priorityFlag: { type: Boolean, default: false, index: true },
     ownerId: { type: Schema.Types.ObjectId, ref: "User", default: null, index: true },
+    closure: {
+      revenuePaise: { type: Number, min: 0 },
+      salespersonId: { type: Schema.Types.ObjectId, ref: "User" },
+      closedAt: { type: Date },
+      recordedBy: { type: Schema.Types.ObjectId, ref: "User" },
+    },
     assignmentHistory: [{
       from: { type: Schema.Types.ObjectId, ref: "User", default: null },
       to: { type: Schema.Types.ObjectId, ref: "User", default: null },
       actorId: { type: Schema.Types.ObjectId, ref: "User", default: null },
-      method: { type: String, enum: ["round_robin", "manual", "transfer"], required: true },
+      method: { type: String, enum: ["round_robin", "manual", "transfer", "rebalance"], required: true },
       at: { type: Date, default: Date.now },
     }],
     clientId: { type: Schema.Types.ObjectId, ref: "Client", default: null, index: true },
@@ -290,7 +296,8 @@ if (
       !existingLeadStatusEnum.includes("invalid"))) ||
     !existingLeadModel.schema.path("prospecting") ||
     !existingLeadModel.schema.path("dashboardConversationId") ||
-    !existingLeadModel.schema.path("assignmentHistory"))
+    !existingLeadModel.schema.path("assignmentHistory.method")?.options?.enum?.includes("rebalance") ||
+    !existingLeadModel.schema.path("closure.revenuePaise"))
 ) {
   delete models.Lead;
 }

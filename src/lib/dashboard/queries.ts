@@ -1,3 +1,6 @@
+import { assignedLeadCounts } from "@/lib/leads/user-counts";
+import { getActorContext } from "@/lib/auth/permissions";
+import { leadVisibilityFilter, relatedLeadFilter, assertSalesLeadAccess } from "@/lib/leads/access";
 import { connectToDatabase } from "@/lib/db/mongodb";
 import {
   ActivityLogModel,
@@ -22,7 +25,7 @@ function clampLimit(value: number | undefined, fallback: number, max: number) {
 export async function getLeads(options?: { limit?: number }) {
   await connectToDatabase();
   const limit = clampLimit(options?.limit, 200, 500);
-  const leads = await LeadModel.find({})
+  const leads = await LeadModel.find(leadVisibilityFilter(await getActorContext()))
     .sort({ updatedAt: -1 })
     .limit(limit)
     // prospecting.* is projected narrowly on purpose - the list only needs
@@ -37,7 +40,7 @@ export async function getLeads(options?: { limit?: number }) {
 
 export async function getLeadById(id: string) {
   await connectToDatabase();
-  const lead = await LeadModel.findById(id)
+  const lead = await LeadModel.findOne({ _id: id, ...leadVisibilityFilter(await getActorContext()) })
     .select("title status score priorityBand")
     .lean();
   return serializeForJson(lead);
@@ -45,13 +48,14 @@ export async function getLeadById(id: string) {
 
 export async function getScopeByLeadId(leadId: string) {
   await connectToDatabase();
+  await assertSalesLeadAccess(await getActorContext(), leadId);
   const scope = await ScopeManifestModel.findOne({ leadId }).lean();
   return serializeForJson(scope);
 }
 
 export async function getProposals() {
   await connectToDatabase();
-  const proposals = await ProposalModel.find({})
+  const proposals = await ProposalModel.find(await relatedLeadFilter(await getActorContext()))
     .sort({ updatedAt: -1 })
     .select("version status approvalStatus leadId clientId")
     .populate("leadId", "title")
@@ -62,7 +66,7 @@ export async function getProposals() {
 
 export async function getProposalById(id: string) {
   await connectToDatabase();
-  const proposal = await ProposalModel.findById(id)
+  const proposal = await ProposalModel.findOne({ _id: id, ...await relatedLeadFilter(await getActorContext()) })
     .select(
       "status approvalStatus projectSummary timeline scopeOfWork exclusions pricing paymentSchedule changeOrderClause signatureBlock leadId clientId",
     )
@@ -83,7 +87,7 @@ export async function getPricingComponents() {
 
 export async function getChangeOrders() {
   await connectToDatabase();
-  const changeOrders = await ChangeOrderModel.find({})
+  const changeOrders = await ChangeOrderModel.find(await relatedLeadFilter(await getActorContext()))
     .sort({ updatedAt: -1 })
     .select("requestedFeature additionalPrice currency timelineImpactDays approvalStatus leadId")
     .populate("leadId", "title")
@@ -169,7 +173,8 @@ export async function getStaffUsers() {
     .limit(300)
     .select("fullName email role status lastLoginAt createdAt")
     .lean();
-  return serializeForJson(users);
+  const counts = await assignedLeadCounts(users.filter((user) => user.role === "sales").map((user) => String(user._id)));
+  return serializeForJson(users.map((user) => ({ ...user, assignedLeadCount: counts.get(String(user._id)) ?? 0 })));
 }
 
 export async function getPasswordChangeRequests() {
