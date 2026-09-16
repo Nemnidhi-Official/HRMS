@@ -87,6 +87,22 @@ async function main() {
   assert.equal((await signIn("dev@test.invalid", password, "admin")).status, 401,
     "an explicit role must still have to match");
 
+  // --- "Keep me signed in" controls how long the session outlives the browser.
+  const persistent = await POST(post({ email: "admin@test.invalid", password, rememberMe: true }));
+  assert.match(
+    persistent.headers.get("set-cookie") ?? "",
+    /Max-Age=\d+/,
+    "keeping signed in should set a persistent cookie",
+  );
+
+  const sessionOnly = await POST(post({ email: "admin@test.invalid", password, rememberMe: false }));
+  const sessionCookie = sessionOnly.headers.get("set-cookie") ?? "";
+  assert.ok(sessionCookie.includes("hrms_session="), "a session cookie is still issued");
+  assert.ok(
+    !/Max-Age=\d+/.test(sessionCookie) && !/Expires=/i.test(sessionCookie),
+    "unchecked should give a cookie that dies with the browser",
+  );
+
   await mongoose.connection.dropDatabase();
   await mongoose.disconnect();
   console.log("universal login checks passed");

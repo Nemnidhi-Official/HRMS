@@ -25,6 +25,12 @@ const loginSchema = z.object({
    * own role was only ever a way to get the answer wrong.
    */
   role: roleSchema.optional(),
+  /**
+   * Unchecked gives a session cookie that dies with the browser, which is what
+   * people expect on a shared or borrowed machine. Checked keeps the existing
+   * persistent window.
+   */
+  rememberMe: z.boolean().optional(),
 });
 
 /** Roles that may sign in at all. Clients included - they use the same form. */
@@ -118,7 +124,8 @@ export async function POST(request: Request) {
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
       path: "/",
-      maxAge: AUTH_COOKIE_MAX_AGE_SECONDS,
+      // Omitting maxAge makes it a session cookie - gone when the browser closes.
+      ...(payload.rememberMe === false ? {} : { maxAge: AUTH_COOKIE_MAX_AGE_SECONDS }),
     });
 
     return response;
