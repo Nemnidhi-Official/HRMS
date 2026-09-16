@@ -317,6 +317,7 @@ export function AttendanceTracker({ initialData }: AttendanceTrackerProps) {
           icon={Check}
           tone="violet"
           label="Completed Days"
+          compact
           period="(Month)"
           value={String(monthSummary.completedDays)}
         />
@@ -324,6 +325,7 @@ export function AttendanceTracker({ initialData }: AttendanceTrackerProps) {
           icon={Contrast}
           tone="amber"
           label="Half Days"
+          compact
           period="(Month)"
           value={String(monthSummary.halfDays)}
         />
@@ -331,6 +333,7 @@ export function AttendanceTracker({ initialData }: AttendanceTrackerProps) {
           icon={Coffee}
           tone="pink"
           label="Break Time"
+          compact
           period="(Month)"
           value={formatMinutesAsHours(monthSummary.breakMinutes)}
         />
@@ -507,10 +510,10 @@ export function AttendanceTracker({ initialData }: AttendanceTrackerProps) {
                   return (
                     <tr key={entry._id} className="border-b border-vega-border-soft">
                       <td className="px-1.5 py-3 text-vega-text">{formatDateFromKey(entry.dateKey)}</td>
-                      <td className="px-1.5 py-3 text-vega-text-muted">
+                      <td className="whitespace-nowrap px-1.5 py-3 text-vega-text-muted">
                         {formatTime(entry.checkInAt)}
                       </td>
-                      <td className="px-1.5 py-3 text-vega-text-muted">
+                      <td className="whitespace-nowrap px-1.5 py-3 text-vega-text-muted">
                         {formatTime(entry.checkOutAt)}
                       </td>
                       <td className="px-1.5 py-3 text-vega-text-muted">
@@ -557,21 +560,54 @@ function StatTile({
   label,
   period,
   value,
+  compact = false,
 }: {
   icon: IconType;
   tone: Tone;
   label: string;
   period: string;
   value: string;
+  compact?: boolean;
 }) {
   return (
     <div className="min-w-0 rounded-2xl border border-vega-border bg-vega-surface-1 p-3.5">
-      <span className={cn("flex h-10 w-10 items-center justify-center rounded-xl border", TONES[tone])}>
-        <Icon className="h-[19px] w-[19px]" strokeWidth={1.9} />
-      </span>
-      <p className="mt-3 text-[13px] font-semibold leading-tight text-vega-text">{label}</p>
-      <p className="text-[12px] leading-tight text-vega-text-muted">{period}</p>
-      <p className="mt-2 truncate text-[22px] font-bold leading-none text-vega-text">{value}</p>
+      <div className="flex items-start gap-3">
+        <span
+          className={cn(
+            "flex shrink-0 items-center justify-center rounded-xl border",
+            compact ? "h-9 w-9" : "h-11 w-11",
+            TONES[tone],
+          )}
+        >
+          <Icon className={compact ? "h-[17px] w-[17px]" : "h-[20px] w-[20px]"} strokeWidth={1.9} />
+        </span>
+        <div className="min-w-0 flex-1">
+          <p
+            className={cn(
+              "font-semibold leading-snug text-vega-text",
+              compact ? "text-[12px]" : "text-[13.5px]",
+            )}
+          >
+            {label}
+          </p>
+          <p
+            className={cn(
+              "leading-snug text-vega-text-muted",
+              compact ? "text-[11px]" : "text-[12.5px]",
+            )}
+          >
+            {period}
+          </p>
+        </div>
+      </div>
+      <p
+        className={cn(
+          "mt-2.5 truncate font-bold leading-none text-vega-text",
+          compact ? "text-[20px]" : "text-[23px]",
+        )}
+      >
+        {value}
+      </p>
     </div>
   );
 }

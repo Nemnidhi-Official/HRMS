@@ -19,7 +19,7 @@ export function AttendanceHero() {
           <p className="text-[12px] font-medium uppercase tracking-[0.16em] text-[#7d93b4]">
             Operations
           </p>
-          <h1 className="mt-1.5 text-[30px] font-bold leading-tight tracking-tight text-vega-text sm:text-[34px]">
+          <h1 className="mt-1.5 whitespace-nowrap text-[26px] font-bold leading-tight tracking-tight text-vega-text min-[400px]:text-[30px] sm:text-[34px]">
             Attendance Desk
           </h1>
           <p className="mt-2 max-w-md text-[13.5px] leading-relaxed text-vega-text-muted">
