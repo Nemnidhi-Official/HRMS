@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useId, useState } from "react";
-import { Bell, Menu, Plus, Search } from "lucide-react";
+import { Bell, Menu, Search } from "lucide-react";
 import { PushNotificationToggle } from "@/components/push/push-notification-toggle";
 import { MobileNav } from "@/components/dashboard/mobile-nav";
 import { PageRefreshButton } from "@/components/dashboard/page-refresh-button";
@@ -55,6 +55,7 @@ export function DashboardTopNav({ role, userLabel }: DashboardTopNavProps) {
   const [notifications, setNotifications] = useState<WorkflowNotification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [notificationsError, setNotificationsError] = useState("");
+  const [clearing, setClearing] = useState(false);
   const mobileNavId = useId();
   const isMobileNavOpen = mobileNavAnchorPath === pathname;
 
@@ -94,6 +95,21 @@ export function DashboardTopNav({ role, userLabel }: DashboardTopNavProps) {
     }
   }
 
+  async function clearNotifications() {
+    setClearing(true);
+    try {
+      const response = await fetch("/api/notifications", { method: "DELETE" });
+      if (!response.ok) throw new Error("Could not clear notifications.");
+      setNotifications([]);
+      setUnreadCount(0);
+      setNotificationsError("");
+    } catch (error) {
+      setNotificationsError(error instanceof Error ? error.message : "Could not clear notifications.");
+    } finally {
+      setClearing(false);
+    }
+  }
+
   return (
     <header className="sticky top-0 z-40 border-b border-vega-border-soft bg-vega-topbar px-3 text-vega-text sm:px-5 lg:px-6">
       <div className="flex min-h-[56px] w-full items-center gap-2 md:min-h-[62px] lg:gap-4">
@@ -127,17 +143,8 @@ export function DashboardTopNav({ role, userLabel }: DashboardTopNavProps) {
         </label>
 
         <div className="ml-auto flex shrink-0 items-center gap-2 lg:gap-3">
-          <Link
-            href="/leads"
-            className="inline-flex h-10 items-center gap-2 rounded-lg bg-vega-accent px-4 text-[13px] font-medium text-white transition-colors hover:bg-vega-accent-hover"
-          >
-            <Plus className="h-4 w-4" strokeWidth={2} aria-hidden="true" />
-            <span className="hidden sm:inline">New</span>
-          </Link>
 
           <PageRefreshButton iconOnly className="h-10 w-10" />
-
-          <PushNotificationToggle className="h-10 w-10" />
 
           <div className="relative">
             <button
@@ -156,8 +163,18 @@ export function DashboardTopNav({ role, userLabel }: DashboardTopNavProps) {
             </button>
             {notificationsOpen ? (
               <div className="fixed inset-x-3 top-[60px] z-50 overflow-hidden rounded-lg border border-vega-border bg-[#0a141f] shadow-[0_16px_36px_rgba(0,0,0,0.35)] sm:absolute sm:inset-x-auto sm:right-0 sm:top-12 sm:w-80">
-                <div className="border-b border-vega-border-soft px-3 py-2">
+                <div className="flex items-center justify-between gap-2 border-b border-vega-border-soft px-3 py-2">
                   <p className="text-xs font-semibold text-vega-text">Notifications</p>
+                  {notifications.length > 0 ? (
+                    <button
+                      type="button"
+                      onClick={() => void clearNotifications()}
+                      disabled={clearing}
+                      className="rounded-md px-2 py-1 text-[11px] font-medium text-vega-text-muted transition-colors hover:bg-vega-surface-hover hover:text-vega-text disabled:opacity-50"
+                    >
+                      {clearing ? "Clearing..." : "Clear all"}
+                    </button>
+                  ) : null}
                 </div>
                 <div className="max-h-80 overflow-y-auto">
                   {notificationsError ? (
@@ -180,6 +197,13 @@ export function DashboardTopNav({ role, userLabel }: DashboardTopNavProps) {
                       </Link>
                     ))
                   )}
+                </div>
+                <div className="border-t border-vega-border-soft px-3 py-2.5">
+                  <PushNotificationToggle
+                    className="h-8 w-8 shrink-0"
+                    label="Push to this device"
+                    hint="Get these on your phone"
+                  />
                 </div>
               </div>
             ) : null}

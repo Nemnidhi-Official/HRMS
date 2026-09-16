@@ -62,7 +62,21 @@ function isStandalone() {
   );
 }
 
-export function PushNotificationToggle({ className }: { className?: string }) {
+export function PushNotificationToggle({
+  className,
+  /**
+   * Renders the control inside a labelled row. The label lives here rather than
+   * at the call site so the two disappear together - this component returns null
+   * on a browser that cannot do push, and a caller-supplied label would other-
+   * wise be left sitting there with nothing beside it.
+   */
+  label,
+  hint,
+}: {
+  className?: string;
+  label?: string;
+  hint?: string;
+}) {
   const [state, setState] = useState<State>("checking");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -242,7 +256,7 @@ export function PushNotificationToggle({ className }: { className?: string }) {
     );
   }
 
-  const label =
+  const description =
     state === "blocked"
       ? "Notifications blocked - allow them in browser settings"
       : state === "on"
@@ -251,13 +265,13 @@ export function PushNotificationToggle({ className }: { className?: string }) {
 
   const Icon = busy ? Loader2 : state === "on" ? BellRing : state === "blocked" ? BellOff : Bell;
 
-  return (
+  const control = (
     <button
       type="button"
       disabled={busy || state === "blocked"}
       onClick={() => void (state === "on" ? disable() : enable())}
-      title={error || label}
-      aria-label={label}
+      title={error || description}
+      aria-label={description}
       className={cn(
         "inline-flex h-9 w-9 items-center justify-center rounded-md transition",
         state === "on"
@@ -269,5 +283,17 @@ export function PushNotificationToggle({ className }: { className?: string }) {
     >
       <Icon className={cn("h-5 w-5", busy && "animate-spin")} strokeWidth={1.8} aria-hidden="true" />
     </button>
+  );
+
+  if (!label) return control;
+
+  return (
+    <span className="flex items-center justify-between gap-3">
+      <span className="min-w-0">
+        <span className="block text-[11px] font-medium text-vega-text">{label}</span>
+        {hint ? <span className="block text-[10px] text-vega-text-muted">{hint}</span> : null}
+      </span>
+      {control}
+    </span>
   );
 }
