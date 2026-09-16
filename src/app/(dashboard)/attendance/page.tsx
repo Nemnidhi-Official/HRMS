@@ -63,9 +63,11 @@ export default async function AttendancePage() {
   const initialData = await getAttendanceOverview(session.userId);
 
   return (
-    <section className="space-y-3.5">
+    <section className="-mx-3 sm:-mx-5 lg:-mx-[22px]">
       <AttendanceHero />
-      <AttendanceTracker initialData={initialData} />
+      <div className="px-4 pt-5 sm:px-6">
+        <AttendanceTracker initialData={initialData} />
+      </div>
     </section>
   );
 }

@@ -8,7 +8,7 @@
  */
 export function AttendanceHero() {
   return (
-    <div className="relative overflow-hidden rounded-2xl border border-vega-border bg-[linear-gradient(115deg,#0e1a2c_0%,#0b1524_55%,#0a1220_100%)] px-4 py-5 sm:px-6 sm:py-6">
+    <div className="relative overflow-hidden border-b border-vega-border-soft bg-[linear-gradient(115deg,#0e1a2c_0%,#0b1524_55%,#0a1220_100%)] px-4 py-5 sm:px-6 sm:py-6">
       <div
         aria-hidden="true"
         className="pointer-events-none absolute -right-16 -top-20 h-64 w-64 rounded-full bg-[#2f6bff]/[0.13] blur-[70px]"
