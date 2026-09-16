@@ -314,7 +314,7 @@ export function AttendanceTracker({ initialData }: AttendanceTrackerProps) {
   }, [todayEntry?.checkInAt, todayEntry?.checkOutAt]);
 
   return (
-    <section className="mx-auto w-full max-w-[1040px] space-y-5">
+    <section className="space-y-5">
       <div>
         <div className="flex items-center justify-between gap-3">
           <h2 className="text-[19px] font-bold tracking-tight text-vega-text">Monthly Summary</h2>
@@ -327,18 +327,14 @@ export function AttendanceTracker({ initialData }: AttendanceTrackerProps) {
           </div>
         </div>
 
-        <div className="mt-3 grid grid-cols-2 gap-x-5 sm:gap-x-7">
-          <div>
-            <SummaryRow icon={CalendarDays} tone="green" label="Present Days" value={String(monthSummary.presentDays)} />
-            <SummaryRow icon={CircleCheck} tone="blue" label="Completed Days" value={String(monthSummary.completedDays)} />
-            <SummaryRow icon={AlarmClock} tone="orange" label="Late Coming" value={String(monthSummary.lateComingDays)} />
-            <SummaryRow icon={CalendarX} tone="pink" label="Absent Days" value={String(monthSummary.absentDays)} last />
-          </div>
-          <div>
-            <SummaryRow icon={Clock} tone="green" label="Worked Time" value={formatMinutesAsHours(liveMonthWorkedMinutes)} />
-            <SummaryRow icon={Contrast} tone="amber" label="Half Days" value={String(monthSummary.halfDays)} />
-            <SummaryRow icon={Coffee} tone="pink" label="Break Time" value={formatMinutesAsHours(monthSummary.breakMinutes)} last />
-          </div>
+        <div className="mt-3 grid grid-cols-2 gap-x-5 sm:gap-x-7 lg:grid-cols-3 2xl:grid-cols-4">
+          <SummaryRow icon={CalendarDays} tone="green" label="Present Days" value={String(monthSummary.presentDays)} />
+          <SummaryRow icon={Clock} tone="green" label="Worked Time" value={formatMinutesAsHours(liveMonthWorkedMinutes)} />
+          <SummaryRow icon={CircleCheck} tone="blue" label="Completed Days" value={String(monthSummary.completedDays)} />
+          <SummaryRow icon={Contrast} tone="amber" label="Half Days" value={String(monthSummary.halfDays)} />
+          <SummaryRow icon={AlarmClock} tone="orange" label="Late Coming" value={String(monthSummary.lateComingDays)} />
+          <SummaryRow icon={Coffee} tone="pink" label="Break Time" value={formatMinutesAsHours(monthSummary.breakMinutes)} />
+          <SummaryRow icon={CalendarX} tone="pink" label="Absent Days" value={String(monthSummary.absentDays)} />
         </div>
       </div>
 
@@ -537,21 +533,14 @@ function SummaryRow({
   tone,
   label,
   value,
-  last = false,
 }: {
   icon: IconType;
   tone: Tone;
   label: string;
   value: string;
-  last?: boolean;
 }) {
   return (
-    <div
-      className={cn(
-        "flex items-center gap-3 py-3",
-        last ? "" : "border-b border-vega-border-soft",
-      )}
-    >
+    <div className="flex items-center gap-3 border-b border-vega-border-soft py-3">
       <Icon className={cn("h-[19px] w-[19px] shrink-0", TONE_TEXT[tone])} strokeWidth={1.9} />
       <span className="min-w-0 flex-1 truncate text-[14px] text-vega-text-secondary">{label}</span>
       <span className="shrink-0 text-[15px] font-bold text-vega-text">{value}</span>
