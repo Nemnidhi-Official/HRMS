@@ -1,15 +1,23 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { type ComponentType, useEffect, useMemo, useState } from "react";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+  AlarmClock,
+  CalendarDays,
+  CalendarX,
+  Check,
+  Clock,
+  Coffee,
+  Contrast,
+  FileText,
+  LogIn,
+  LogOut,
+  Play,
+  RefreshCw,
+  Square,
+} from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils/cn";
 import type {
   AttendancePayload,
   AttendanceRecord,
@@ -41,6 +49,16 @@ function formatDateFromKey(dateKey?: string) {
   }
   return new Date(`${dateKey}T00:00:00`).toLocaleDateString("en-IN", {
     day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+function formatFullDate(dateKey?: string) {
+  const date = dateKey ? new Date(`${dateKey}T00:00:00`) : new Date();
+  return date.toLocaleDateString("en-IN", {
+    weekday: "short",
+    day: "numeric",
     month: "short",
     year: "numeric",
   });
@@ -113,7 +131,7 @@ function statusFromEntry(entry: AttendanceRecord | null) {
     return { label: "Half Day", variant: "warning" as const };
   }
   if (entry.dayStatus === "late_coming") {
-    return { label: "Late Coming", variant: "accent" as const };
+    return { label: "Late Coming", variant: "warning" as const };
   }
   if (entry.checkOutAt) {
     return { label: "Checked Out", variant: "success" as const };
@@ -276,255 +294,350 @@ export function AttendanceTracker({ initialData }: AttendanceTrackerProps) {
   }, [todayEntry?.checkInAt, todayEntry?.checkOutAt]);
 
   return (
-    <section className="space-y-4">
-      <div className="grid gap-4 md:grid-cols-3 xl:grid-cols-7">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm">Present Days (Month)</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-semibold text-foreground">{monthSummary.presentDays}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm">Worked Time (Month)</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-semibold text-foreground">
-              {formatMinutesAsHours(liveMonthWorkedMinutes)}
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm">Completed Days (Month)</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-semibold text-foreground">{monthSummary.completedDays}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm">Half Days (Month)</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-semibold text-foreground">{monthSummary.halfDays}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm">Late Coming (Month)</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-semibold text-foreground">{monthSummary.lateComingDays}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm">Absent Days (Month)</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-semibold text-foreground">{monthSummary.absentDays}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm">Break Time (Month)</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-semibold text-foreground">
-              {formatMinutesAsHours(monthSummary.breakMinutes)}
-            </p>
-          </CardContent>
-        </Card>
+    <section className="space-y-3.5">
+      <div className="grid grid-cols-2 gap-3">
+        <StatTile
+          icon={CalendarDays}
+          tone="blue"
+          label="Present Days"
+          period="(Month)"
+          value={String(monthSummary.presentDays)}
+        />
+        <StatTile
+          icon={Clock}
+          tone="green"
+          label="Worked Time"
+          period="(Month)"
+          value={formatMinutesAsHours(liveMonthWorkedMinutes)}
+        />
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Today&apos;s Attendance</CardTitle>
-          <CardDescription>
-            Mark check-in and check-out once per day. Admin is excluded from this flow.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex flex-wrap items-center gap-3">
-            <Badge variant={attendanceStatus.variant}>{attendanceStatus.label}</Badge>
-            <p className="text-sm text-muted-foreground">
-              Date: <span className="font-medium text-foreground">{formatDateFromKey(todayEntry?.dateKey)}</span>
-            </p>
+      <div className="grid grid-cols-3 gap-3">
+        <StatTile
+          icon={Check}
+          tone="violet"
+          label="Completed Days"
+          period="(Month)"
+          value={String(monthSummary.completedDays)}
+        />
+        <StatTile
+          icon={Contrast}
+          tone="amber"
+          label="Half Days"
+          period="(Month)"
+          value={String(monthSummary.halfDays)}
+        />
+        <StatTile
+          icon={Coffee}
+          tone="pink"
+          label="Break Time"
+          period="(Month)"
+          value={formatMinutesAsHours(monthSummary.breakMinutes)}
+        />
+      </div>
+
+      {/* Late coming and absent are not in the mock, but they drive salary
+          deductions - hiding them would hide why someone was paid less. */}
+      <div className="grid grid-cols-2 gap-3">
+        <StatTile
+          icon={AlarmClock}
+          tone="orange"
+          label="Late Coming"
+          period="(Month)"
+          value={String(monthSummary.lateComingDays)}
+        />
+        <StatTile
+          icon={CalendarX}
+          tone="red"
+          label="Absent Days"
+          period="(Month)"
+          value={String(monthSummary.absentDays)}
+        />
+      </div>
+
+      <div className="rounded-2xl border border-vega-border bg-vega-surface-1 p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-2.5">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-vega-accent-border bg-vega-accent-soft text-[#93c5fd]">
+              <CalendarDays className="h-[18px] w-[18px]" strokeWidth={1.8} aria-hidden={true} />
+            </span>
+            <h2 className="truncate text-[17px] font-semibold text-vega-text">
+              Today&apos;s Attendance
+            </h2>
           </div>
+          <span className="inline-flex items-center gap-2 rounded-lg border border-vega-border bg-vega-surface-2 px-3 py-2 text-[12.5px] text-vega-text-secondary">
+            <CalendarDays className="h-4 w-4 shrink-0 text-vega-text-muted" strokeWidth={1.8} aria-hidden={true} />
+            {formatFullDate(todayEntry?.dateKey)}
+          </span>
+        </div>
 
-          <div className="grid gap-3 sm:grid-cols-3">
-            <div className="rounded-lg border border-border bg-vega-surface-1 p-3">
-              <p className="text-xs uppercase tracking-[0.08em] text-muted-foreground">Check-in</p>
-              <p className="mt-1 text-sm font-semibold text-foreground">
-                {formatTime(todayEntry?.checkInAt)}
-              </p>
-            </div>
-            <div className="rounded-lg border border-border bg-vega-surface-1 p-3">
-              <p className="text-xs uppercase tracking-[0.08em] text-muted-foreground">Check-out</p>
-              <p className="mt-1 text-sm font-semibold text-foreground">
-                {formatTime(todayEntry?.checkOutAt)}
-              </p>
-            </div>
-            <div className="rounded-lg border border-border bg-vega-surface-1 p-3">
-              <p className="text-xs uppercase tracking-[0.08em] text-muted-foreground">Worked Time</p>
-              <p className="mt-1 text-sm font-semibold text-foreground">
-                {formatMinutesAsHours(liveTodayWorkedMinutes)}
-              </p>
-            </div>
-            <div className="rounded-lg border border-border bg-vega-surface-1 p-3">
-              <p className="text-xs uppercase tracking-[0.08em] text-muted-foreground">Break Time</p>
-              <p className="mt-1 text-sm font-semibold text-foreground">
-                {formatMinutesAsHours(todayEntry?.totalBreakMinutes ?? 0)}
-              </p>
-            </div>
-          </div>
+        <p className="mt-3 text-[13px] text-vega-text-muted">
+          Mark check-in and check-out once per day.
+        </p>
 
-          <div className="flex flex-wrap items-center gap-3">
-            <Button
-              onClick={() =>
-                runAction(
-                  "check-in",
-                  "/api/attendance",
-                  "POST",
-                  "Check-in marked successfully.",
-                  { requiresLocation: true },
-                )
-              }
-              disabled={loading || actionLoading !== null || !canCheckIn}
-            >
-              {actionLoading === "check-in" ? "Checking In..." : "Check In"}
-            </Button>
-            <Button
-              variant="secondary"
-              onClick={confirmBeforeCheckout}
-              disabled={loading || actionLoading !== null || !canCheckOut}
-            >
-              {actionLoading === "check-out" ? "Checking Out..." : "Check Out"}
-            </Button>
-            <Button
-              variant="subtle"
-              onClick={() =>
-                runAction("break-start", "/api/attendance/break/start", "PATCH", "Break started.")
-              }
-              disabled={loading || actionLoading !== null || !canStartBreak}
-            >
-              {actionLoading === "break-start" ? "Starting Break..." : "Start Break"}
-            </Button>
-            <Button
-              variant="subtle"
-              onClick={() =>
-                runAction("break-end", "/api/attendance/break/end", "PATCH", "Break ended.")
-              }
-              disabled={loading || actionLoading !== null || !canEndBreak}
-            >
-              {actionLoading === "break-end" ? "Ending Break..." : "End Break"}
-            </Button>
-            <Button
-              variant="subtle"
-              onClick={() => void refreshAttendance()}
-              disabled={loading || actionLoading !== null}
-            >
-              {loading ? "Refreshing..." : "Refresh"}
-            </Button>
-          </div>
+        <div className="mt-3 flex flex-wrap items-center gap-3">
+          <Badge variant={attendanceStatus.variant}>{attendanceStatus.label}</Badge>
+          <span className="text-[12.5px] text-vega-text-muted">
+            Admin is excluded from this flow.
+          </span>
+        </div>
 
-          {activeBreak ? (
-            <div className="rounded-lg border border-warning/30 bg-[#f8f1e4] p-3 text-sm text-warning">
-              Break in progress since {formatTime(activeBreak.startAt)}.
-            </div>
-          ) : null}
+        <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <MiniStat icon={LogIn} tone="green" label="Check-In" value={formatTime(todayEntry?.checkInAt)} />
+          <MiniStat icon={LogOut} tone="red" label="Check-Out" value={formatTime(todayEntry?.checkOutAt)} />
+          <MiniStat icon={Clock} tone="blue" label="Worked Time" value={formatMinutesAsHours(liveTodayWorkedMinutes)} />
+          <MiniStat icon={Coffee} tone="violet" label="Break Time" value={formatMinutesAsHours(todayEntry?.totalBreakMinutes ?? 0)} />
+        </div>
 
-          {notice ? (
-            <p className={notice.tone === "error" ? "text-sm text-danger" : "text-sm text-success"}>
-              {notice.text}
-            </p>
-          ) : null}
+        <div className="mt-4 grid grid-cols-2 gap-2.5 border-t border-vega-border-soft pt-4 min-[420px]:grid-cols-3">
+          <ActionButton
+            icon={Play}
+            primary
+            label={actionLoading === "check-in" ? "Checking In..." : "Check In"}
+            onClick={() =>
+              runAction("check-in", "/api/attendance", "POST", "Check-in marked successfully.", {
+                requiresLocation: true,
+              })
+            }
+            disabled={loading || actionLoading !== null || !canCheckIn}
+          />
+          <ActionButton
+            icon={LogOut}
+            label={actionLoading === "check-out" ? "Checking Out..." : "Check Out"}
+            onClick={confirmBeforeCheckout}
+            disabled={loading || actionLoading !== null || !canCheckOut}
+          />
+          <ActionButton
+            icon={Coffee}
+            label={actionLoading === "break-start" ? "Starting Break..." : "Start Break"}
+            onClick={() => runAction("break-start", "/api/attendance/break/start", "PATCH", "Break started.")}
+            disabled={loading || actionLoading !== null || !canStartBreak}
+          />
+          <ActionButton
+            icon={Square}
+            label={actionLoading === "break-end" ? "Ending Break..." : "End Break"}
+            onClick={() => runAction("break-end", "/api/attendance/break/end", "PATCH", "Break ended.")}
+            disabled={loading || actionLoading !== null || !canEndBreak}
+          />
+          <ActionButton
+            icon={RefreshCw}
+            label={loading ? "Refreshing..." : "Refresh"}
+            onClick={() => void refreshAttendance()}
+            disabled={loading || actionLoading !== null}
+          />
+        </div>
 
-          {todayBreakSessions.length > 0 ? (
-            <div className="overflow-x-auto">
-              <table className="min-w-full text-sm">
-                <thead>
-                  <tr className="border-b border-border text-left text-muted-foreground">
-                    <th className="px-2 py-2">Break Start</th>
-                    <th className="px-2 py-2">Break End</th>
-                    <th className="px-2 py-2">Duration</th>
+        {activeBreak ? (
+          <p className="mt-3 rounded-lg border border-vega-yellow/35 bg-vega-yellow/10 px-3 py-2.5 text-[13px] text-vega-yellow">
+            Break in progress since {formatTime(activeBreak.startAt)}.
+          </p>
+        ) : null}
+
+        {notice ? (
+          <p
+            role="alert"
+            className={
+              notice.tone === "error"
+                ? "mt-3 rounded-lg border border-vega-red/35 bg-vega-red/10 px-3 py-2.5 text-[13px] text-vega-red"
+                : "mt-3 rounded-lg border border-vega-green/35 bg-vega-green/10 px-3 py-2.5 text-[13px] text-[#66dc91]"
+            }
+          >
+            {notice.text}
+          </p>
+        ) : null}
+
+        {todayBreakSessions.length > 0 ? (
+          <div className="mt-4 overflow-x-auto">
+            <table className="w-full text-[12.5px]">
+              <thead>
+                <tr className="border-b border-vega-border text-left text-vega-text-muted">
+                  <th className="px-2 py-2 font-medium">Break Start</th>
+                  <th className="px-2 py-2 font-medium">Break End</th>
+                  <th className="px-2 py-2 font-medium">Duration</th>
+                </tr>
+              </thead>
+              <tbody>
+                {todayBreakSessions.map((session, index) => (
+                  <tr key={`${session.startAt ?? "start"}-${index}`} className="border-b border-vega-border-soft">
+                    <td className="px-2 py-2 text-vega-text">{formatTime(session.startAt)}</td>
+                    <td className="px-2 py-2 text-vega-text-muted">
+                      {session.endAt ? formatTime(session.endAt) : "In Progress"}
+                    </td>
+                    <td className="px-2 py-2 text-vega-text-muted">
+                      {formatMinutesAsHours(session.minutes ?? 0)}
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {todayBreakSessions.map((session, index) => (
-                    <tr key={`${session.startAt ?? "start"}-${index}`} className="border-b border-border/60">
-                      <td className="px-2 py-2 text-foreground">{formatTime(session.startAt)}</td>
-                      <td className="px-2 py-2 text-muted-foreground">
-                        {session.endAt ? formatTime(session.endAt) : "In Progress"}
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : null}
+      </div>
+
+      <div className="rounded-2xl border border-vega-border bg-vega-surface-1 p-4">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex min-w-0 items-center gap-2.5">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-vega-accent-border bg-vega-accent-soft text-[#93c5fd]">
+              <FileText className="h-[18px] w-[18px]" strokeWidth={1.8} aria-hidden={true} />
+            </span>
+            <h2 className="truncate text-[17px] font-semibold text-vega-text">Recent Attendance</h2>
+          </div>
+          <p className="text-[12.5px] text-vega-text-muted">
+            Last 21 entries from your attendance log.
+          </p>
+        </div>
+
+        {data.recentEntries.length === 0 ? (
+          <p className="mt-4 text-[13px] text-vega-text-muted">No attendance records yet.</p>
+        ) : (
+          <div className="mt-4 overflow-x-auto">
+            <table className="w-full text-[12.5px]">
+              <thead>
+                <tr className="border-b border-vega-border text-left text-vega-text-muted">
+                  <th className="px-1.5 py-2.5 font-medium">Date</th>
+                  <th className="px-1.5 py-2.5 font-medium">Check-in</th>
+                  <th className="px-1.5 py-2.5 font-medium">Check-out</th>
+                  <th className="px-1.5 py-2.5 font-medium">Worked Time</th>
+                  <th className="px-1.5 py-2.5 font-medium">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.recentEntries.map((entry) => {
+                  const status = statusFromEntry(entry);
+                  return (
+                    <tr key={entry._id} className="border-b border-vega-border-soft">
+                      <td className="px-1.5 py-3 text-vega-text">{formatDateFromKey(entry.dateKey)}</td>
+                      <td className="px-1.5 py-3 text-vega-text-muted">
+                        {formatTime(entry.checkInAt)}
                       </td>
-                      <td className="px-2 py-2 text-muted-foreground">
-                        {formatMinutesAsHours(session.minutes ?? 0)}
+                      <td className="px-1.5 py-3 text-vega-text-muted">
+                        {formatTime(entry.checkOutAt)}
+                      </td>
+                      <td className="px-1.5 py-3 text-vega-text-muted">
+                        {formatMinutesAsHours(
+                          entry._id === todayEntry?._id
+                            ? liveTodayWorkedMinutes
+                            : entry.workedMinutes ?? 0,
+                        )}
+                      </td>
+                      <td className="px-1.5 py-3">
+                        <Badge variant={status.variant} className="whitespace-nowrap">
+                          {status.label}
+                        </Badge>
                       </td>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : null}
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Recent Attendance</CardTitle>
-          <CardDescription>Last 21 entries from your attendance log.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {data.recentEntries.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No attendance records yet.</p>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full text-sm">
-                <thead>
-                  <tr className="border-b border-border text-left text-muted-foreground">
-                    <th className="px-2 py-2">Date</th>
-                    <th className="px-2 py-2">Check-in</th>
-                    <th className="px-2 py-2">Check-out</th>
-                    <th className="px-2 py-2">Worked Time</th>
-                    <th className="px-2 py-2">Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.recentEntries.map((entry) => {
-                    const status = statusFromEntry(entry);
-                    return (
-                      <tr key={entry._id} className="border-b border-border/60">
-                        <td className="px-2 py-2 text-foreground">
-                          {formatDateFromKey(entry.dateKey)}
-                        </td>
-                        <td className="px-2 py-2 text-muted-foreground">
-                          {formatTime(entry.checkInAt)}
-                        </td>
-                        <td className="px-2 py-2 text-muted-foreground">
-                          {formatTime(entry.checkOutAt)}
-                        </td>
-                        <td className="px-2 py-2 text-muted-foreground">
-                          {formatMinutesAsHours(
-                            entry._id === todayEntry?._id
-                              ? liveTodayWorkedMinutes
-                              : entry.workedMinutes ?? 0,
-                          )}
-                        </td>
-                        <td className="px-2 py-2">
-                          <Badge variant={status.variant}>{status.label}</Badge>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
     </section>
+  );
+}
+
+const TONES = {
+  blue: "border-[#2f6bff]/35 bg-[#12213c] text-[#6da2ff]",
+  green: "border-[#22c55e]/30 bg-[#0f2418] text-[#5fd88c]",
+  violet: "border-[#8b5cf6]/30 bg-[#1c1733] text-[#a98bff]",
+  amber: "border-[#eab308]/30 bg-[#2a2210] text-[#e6bb3f]",
+  pink: "border-[#ec4899]/30 bg-[#2a1322] text-[#f07cb5]",
+  orange: "border-[#f97316]/30 bg-[#2b1a0e] text-[#f59e5c]",
+  red: "border-[#ef4444]/30 bg-[#2b1416] text-[#f47171]",
+} as const;
+
+type Tone = keyof typeof TONES;
+type IconType = ComponentType<{ className?: string; strokeWidth?: number }>;
+
+/** A month figure: coloured icon tile, two-line label, then the number. */
+function StatTile({
+  icon: Icon,
+  tone,
+  label,
+  period,
+  value,
+}: {
+  icon: IconType;
+  tone: Tone;
+  label: string;
+  period: string;
+  value: string;
+}) {
+  return (
+    <div className="min-w-0 rounded-2xl border border-vega-border bg-vega-surface-1 p-3.5">
+      <span className={cn("flex h-10 w-10 items-center justify-center rounded-xl border", TONES[tone])}>
+        <Icon className="h-[19px] w-[19px]" strokeWidth={1.9} />
+      </span>
+      <p className="mt-3 text-[13px] font-semibold leading-tight text-vega-text">{label}</p>
+      <p className="text-[12px] leading-tight text-vega-text-muted">{period}</p>
+      <p className="mt-2 truncate text-[22px] font-bold leading-none text-vega-text">{value}</p>
+    </div>
+  );
+}
+
+/** Today's four figures - icon and label on one line, value beneath. */
+function MiniStat({
+  icon: Icon,
+  tone,
+  label,
+  value,
+}: {
+  icon: IconType;
+  tone: Tone;
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="min-w-0 rounded-xl border border-vega-border bg-vega-surface-2 p-3">
+      <span className="flex items-center gap-2">
+        <Icon className={cn("h-4 w-4 shrink-0", TONE_TEXT[tone])} strokeWidth={1.9} />
+        <span className="truncate text-[12px] text-vega-text-muted">{label}</span>
+      </span>
+      <p className="mt-1.5 truncate text-[15px] font-semibold text-vega-text">{value}</p>
+    </div>
+  );
+}
+
+/** Just the foreground colour of each tone, for icons that sit on no tile. */
+const TONE_TEXT: Record<Tone, string> = {
+  blue: "text-[#6da2ff]",
+  green: "text-[#5fd88c]",
+  violet: "text-[#a98bff]",
+  amber: "text-[#e6bb3f]",
+  pink: "text-[#f07cb5]",
+  orange: "text-[#f59e5c]",
+  red: "text-[#f47171]",
+};
+
+function ActionButton({
+  icon: Icon,
+  label,
+  onClick,
+  disabled,
+  primary = false,
+}: {
+  icon: IconType;
+  label: string;
+  onClick: () => void;
+  disabled?: boolean;
+  primary?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className={cn(
+        "inline-flex h-[46px] items-center justify-center gap-1.5 rounded-xl px-2 text-[13px] font-medium transition-colors sm:gap-2 sm:px-3 sm:text-[14px]",
+        primary
+          ? "bg-vega-accent text-white hover:bg-vega-accent-hover"
+          : "border border-vega-border bg-vega-surface-2 text-vega-text-secondary hover:bg-vega-surface-hover hover:text-vega-text",
+        "disabled:cursor-not-allowed disabled:opacity-45",
+      )}
+    >
+      <Icon className="h-[17px] w-[17px] shrink-0" strokeWidth={1.9} />
+      <span className="truncate">{label}</span>
+    </button>
   );
 }
