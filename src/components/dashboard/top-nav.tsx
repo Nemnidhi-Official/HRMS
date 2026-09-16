@@ -3,15 +3,10 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useId, useState } from "react";
-import { Bell, ChevronDown, Menu, Plus, Search } from "lucide-react";
+import { Bell, Menu, Plus, Search } from "lucide-react";
 import { PushNotificationToggle } from "@/components/push/push-notification-toggle";
-import { LogoutButton } from "@/components/auth/logout-button";
+import { MobileNav } from "@/components/dashboard/mobile-nav";
 import { PageRefreshButton } from "@/components/dashboard/page-refresh-button";
-import {
-  getDashboardNavItems,
-  isDashboardNavItemActive,
-} from "@/components/dashboard/nav-items";
-import { cn } from "@/lib/utils/cn";
 import type { UserRole } from "@/types/user";
 
 interface DashboardTopNavProps {
@@ -52,22 +47,11 @@ async function fetchNotifications() {
   return payload.data as { items: WorkflowNotification[]; unreadCount: number };
 }
 
-function initials(label: string) {
-  return label
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0])
-    .join("")
-    .toUpperCase();
-}
 
 export function DashboardTopNav({ role, userLabel }: DashboardTopNavProps) {
   const pathname = usePathname();
-  const navItems = getDashboardNavItems(role);
   const [mobileNavAnchorPath, setMobileNavAnchorPath] = useState<string | null>(null);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
-  const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [notifications, setNotifications] = useState<WorkflowNotification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [notificationsError, setNotificationsError] = useState("");
@@ -94,7 +78,6 @@ export function DashboardTopNav({ role, userLabel }: DashboardTopNavProps) {
   }, []);
 
   async function markNotificationsRead() {
-    setUserMenuOpen(false);
     setNotificationsOpen((value) => !value);
     if (unreadCount === 0) return;
     try {
@@ -152,6 +135,8 @@ export function DashboardTopNav({ role, userLabel }: DashboardTopNavProps) {
             <span className="hidden sm:inline">New</span>
           </Link>
 
+          <PageRefreshButton iconOnly className="h-10 w-10" />
+
           <PushNotificationToggle className="h-10 w-10" />
 
           <div className="relative">
@@ -170,7 +155,7 @@ export function DashboardTopNav({ role, userLabel }: DashboardTopNavProps) {
               ) : null}
             </button>
             {notificationsOpen ? (
-              <div className="absolute right-0 top-12 z-50 w-80 overflow-hidden rounded-lg border border-vega-border bg-[#0a141f] shadow-[0_16px_36px_rgba(0,0,0,0.35)]">
+              <div className="fixed inset-x-3 top-[60px] z-50 overflow-hidden rounded-lg border border-vega-border bg-[#0a141f] shadow-[0_16px_36px_rgba(0,0,0,0.35)] sm:absolute sm:inset-x-auto sm:right-0 sm:top-12 sm:w-80">
                 <div className="border-b border-vega-border-soft px-3 py-2">
                   <p className="text-xs font-semibold text-vega-text">Notifications</p>
                 </div>
@@ -200,78 +185,15 @@ export function DashboardTopNav({ role, userLabel }: DashboardTopNavProps) {
             ) : null}
           </div>
 
-          <div className="relative">
-            <button
-              type="button"
-              aria-expanded={userMenuOpen}
-              aria-label="Account menu"
-              onClick={() => {
-                setNotificationsOpen(false);
-                setUserMenuOpen((value) => !value);
-              }}
-              className="flex items-center gap-2 rounded-lg py-1 pl-1 pr-1 transition-colors hover:bg-vega-surface-hover lg:pr-2"
-            >
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-vega-accent text-xs font-semibold text-white">
-                {initials(userLabel)}
-              </span>
-              <span className="hidden min-w-0 text-left lg:block">
-                <span className="block max-w-40 truncate text-[13px] font-medium leading-4 text-vega-text">{userLabel}</span>
-                <span className="block truncate text-[11px] capitalize leading-4 text-vega-text-muted">
-                  {role.replaceAll("_", " ")}
-                </span>
-              </span>
-              <ChevronDown className="h-4 w-4 shrink-0 text-vega-text-muted" strokeWidth={1.8} aria-hidden="true" />
-            </button>
-            {userMenuOpen ? (
-              <div className="absolute right-0 top-12 z-50 w-52 overflow-hidden rounded-lg border border-vega-border bg-[#0a141f] p-1 shadow-[0_16px_36px_rgba(0,0,0,0.35)]">
-                <Link
-                  href="/account"
-                  onClick={() => setUserMenuOpen(false)}
-                  className="block rounded-md px-3 py-2 text-[13px] font-medium text-vega-text-secondary transition-colors hover:bg-vega-surface-hover hover:text-vega-text"
-                >
-                  Account
-                </Link>
-                <PageRefreshButton />
-                <LogoutButton
-                  showIcon
-                  className="h-9 w-full justify-start gap-2 border-transparent bg-transparent px-3 text-[13px] font-medium text-vega-text-muted shadow-none hover:bg-vega-surface-hover hover:text-vega-text"
-                />
-              </div>
-            ) : null}
-          </div>
         </div>
       </div>
 
-      <div
-        id={mobileNavId}
-        className={cn(
-          "overflow-hidden transition-all duration-200 lg:hidden",
-          isMobileNavOpen ? "mt-3 max-h-[72dvh] pb-3 opacity-100" : "max-h-0 opacity-0",
-        )}
-      >
-        <nav className="no-scrollbar grid max-h-[68dvh] gap-1.5 overflow-y-auto overscroll-contain rounded-lg border border-vega-border bg-vega-surface-1 p-2">
-          {navItems.map((item) => {
-            const isActive = isDashboardNavItemActive(pathname, item.href);
-
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={() => setMobileNavAnchorPath(null)}
-                aria-current={isActive ? "page" : undefined}
-                className={cn(
-                  "rounded-md px-3 py-2.5 text-sm font-medium transition-colors duration-150",
-                  isActive
-                    ? "bg-vega-accent text-white"
-                    : "bg-vega-surface-2 text-vega-text-secondary hover:bg-vega-surface-hover hover:text-vega-text",
-                )}
-              >
-                {item.label}
-              </Link>
-            );
-          })}
-        </nav>
-      </div>
+      <MobileNav
+        role={role}
+        userLabel={userLabel}
+        open={isMobileNavOpen}
+        onClose={() => setMobileNavAnchorPath(null)}
+      />
     </header>
   );
 }

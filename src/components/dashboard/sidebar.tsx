@@ -22,6 +22,7 @@ import {
   Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
+import { LogoutButton } from "@/components/auth/logout-button";
 import {
   getDashboardNavGroup,
   isDashboardNavItemActive,
@@ -31,6 +32,7 @@ import type { UserRole } from "@/types/user";
 
 interface DashboardSidebarProps {
   role: UserRole;
+  userLabel: string;
 }
 
 const iconMap = {
@@ -58,7 +60,17 @@ const groupHeadings: Array<{ group: DashboardNavGroup; heading: string }> = [
   { group: "pricing", heading: "Pricing" },
 ];
 
-export function DashboardSidebar({ role }: DashboardSidebarProps) {
+function initials(label: string) {
+  return label
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join("")
+    .toUpperCase();
+}
+
+export function DashboardSidebar({ role, userLabel }: DashboardSidebarProps) {
   const pathname = usePathname();
 
   function navLink(item: { label: string; href: string }) {
@@ -142,6 +154,29 @@ export function DashboardSidebar({ role }: DashboardSidebarProps) {
             </Link>
           </div>
         </nav>
+
+        {/* Account and sign-out live here rather than behind a header dropdown,
+            so the top bar carries only what belongs to the current page. */}
+        <div className="mt-auto shrink-0 space-y-1 border-t border-vega-border-soft px-3 py-3">
+          <Link
+            href="/account"
+            className="group flex items-center gap-3 rounded-lg px-2 py-2 transition-colors hover:bg-vega-surface-hover"
+          >
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-vega-accent text-[11px] font-semibold text-white">
+              {initials(userLabel)}
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-[13px] font-medium leading-4 text-vega-text">{userLabel}</span>
+              <span className="block truncate text-[11px] capitalize leading-4 text-vega-text-muted">
+                {role.replaceAll("_", " ")}
+              </span>
+            </span>
+          </Link>
+          <LogoutButton
+            showIcon
+            className="h-[38px] w-full justify-start gap-3 rounded-lg border-transparent bg-transparent px-3 text-[13px] font-medium text-vega-text-secondary shadow-none hover:bg-vega-surface-hover hover:text-vega-text"
+          />
+        </div>
       </div>
     </aside>
   );
