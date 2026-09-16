@@ -314,7 +314,7 @@ export function AttendanceTracker({ initialData }: AttendanceTrackerProps) {
   }, [todayEntry?.checkInAt, todayEntry?.checkOutAt]);
 
   return (
-    <section className="space-y-5">
+    <section className="mx-auto w-full max-w-[1040px] space-y-5">
       <div>
         <div className="flex items-center justify-between gap-3">
           <h2 className="text-[19px] font-bold tracking-tight text-vega-text">Monthly Summary</h2>
@@ -375,7 +375,7 @@ export function AttendanceTracker({ initialData }: AttendanceTrackerProps) {
           <TodayFigure icon={Coffee} tone="violet" label="Break Time" value={formatMinutesAsHours(todayEntry?.totalBreakMinutes ?? 0)} />
         </div>
 
-        <div className="mt-3.5 grid grid-cols-2 gap-3">
+        <div className="mt-3.5 grid grid-cols-2 gap-3 sm:flex sm:flex-wrap">
           <ActionButton
             icon={Play}
             primary
@@ -405,7 +405,7 @@ export function AttendanceTracker({ initialData }: AttendanceTrackerProps) {
             onClick={() => runAction("break-end", "/api/attendance/break/end", "PATCH", "Break ended.")}
             disabled={loading || actionLoading !== null || !canEndBreak}
           />
-          <div className="col-span-2">
+          <div className="col-span-2 sm:contents">
             <ActionButton
               icon={RefreshCw}
               label={loading ? "Refreshing..." : "Refresh"}
@@ -614,6 +614,7 @@ function ActionButton({
       disabled={disabled}
       className={cn(
         "inline-flex h-[50px] w-full items-center justify-center gap-2.5 rounded-xl text-[14.5px] font-semibold transition-colors",
+        "sm:h-[42px] sm:w-auto sm:px-5 sm:text-[13.5px]",
         primary
           ? "bg-vega-accent text-white hover:bg-vega-accent-hover"
           : "border border-vega-border bg-vega-surface-1 text-vega-text-secondary hover:bg-vega-surface-hover hover:text-vega-text",

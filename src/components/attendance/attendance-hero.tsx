@@ -14,7 +14,7 @@ export function AttendanceHero() {
         className="pointer-events-none absolute -right-16 -top-20 h-64 w-64 rounded-full bg-[#2f6bff]/[0.13] blur-[70px]"
       />
 
-      <div className="relative flex items-start justify-between gap-4">
+      <div className="relative mx-auto flex w-full max-w-[1040px] items-start justify-between gap-4">
         <div className="min-w-0">
           <p className="text-[12px] font-medium uppercase tracking-[0.16em] text-[#7d93b4]">
             Operations
