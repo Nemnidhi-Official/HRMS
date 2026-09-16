@@ -16,6 +16,16 @@ export function getStaffLoginRoute(role: LoginRole) {
   return STAFF_LOGIN_ROUTES[role];
 }
 
+/** The one sign-in page. Everyone uses it; the account decides where they land. */
+export const LOGIN_PATH = "/login";
+
+/** Where a given role lands after signing in. */
+export function getHomeRouteForRole(role: string) {
+  if (role === "client") return "/client";
+  if (role === "developer") return "/tasks";
+  return "/dashboard";
+}
+
 export function getStaffHomeRoute(role: LoginRole) {
   if (role === "developer") {
     return "/tasks";
