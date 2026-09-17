@@ -36,6 +36,7 @@
     "test:push": "tsx scripts/validate-push-notifications.ts",
     "test:notifications": "tsx scripts/validate-notification-dispatch.ts",
     "test:login": "tsx scripts/validate-universal-login.ts",
+    "test:dashboards": "tsx scripts/validate-role-dashboards.ts",
     "repair:notification-targets": "tsx --env-file=.env.local scripts/repair-notification-targets.ts"
   },
   "dependencies": {

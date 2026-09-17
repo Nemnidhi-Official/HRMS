@@ -21,16 +21,14 @@ export const LOGIN_PATH = "/login";
 
 /** Where a given role lands after signing in. */
 export function getHomeRouteForRole(role: string) {
+  // Developers used to land on the task list because the only dashboard was a
+  // sales one. They have their own now, so everyone but a client starts there.
   if (role === "client") return "/client";
-  if (role === "developer") return "/tasks";
   return "/dashboard";
 }
 
 export function getStaffHomeRoute(role: LoginRole) {
-  if (role === "developer") {
-    return "/tasks";
-  }
-  return "/dashboard";
+  return getHomeRouteForRole(role);
 }
 
 export const APP_ROLES: UserRole[] = [
