@@ -1,5 +1,7 @@
 "use client";
 
+import { VegaLogo } from "@/components/vega-logo";
+
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useId, useState } from "react";
@@ -123,9 +125,7 @@ export function DashboardTopNav({ role, userLabel }: DashboardTopNavProps) {
         >
           <Menu className="h-5 w-5" strokeWidth={1.8} aria-hidden="true" />
         </button>
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-vega-accent text-sm font-bold text-white lg:hidden">
-          V
-        </div>
+        <VegaLogo className="h-10 w-10 shrink-0 lg:hidden" />
         <p className="min-w-0 truncate text-lg font-semibold leading-6 text-vega-text lg:hidden">Vega</p>
 
         <label className="relative hidden min-w-0 flex-1 items-center md:flex lg:max-w-[520px]">

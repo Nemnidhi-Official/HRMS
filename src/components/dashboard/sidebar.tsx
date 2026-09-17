@@ -1,5 +1,7 @@
 "use client";
 
+import { VegaLogo } from "@/components/vega-logo";
+
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -105,9 +107,7 @@ export function DashboardSidebar({ role, userLabel }: DashboardSidebarProps) {
     <aside className="hidden h-screen w-[250px] shrink-0 border-r border-vega-border-soft bg-vega-sidebar text-vega-text lg:sticky lg:top-0 lg:flex lg:overflow-y-auto">
       <div className="flex min-h-full w-full flex-col">
         <div className="flex h-[62px] shrink-0 items-center gap-2.5 px-4">
-          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-vega-accent text-sm font-bold text-white">
-            V
-          </span>
+          <VegaLogo className="h-10 w-10 shrink-0" />
           <span className="min-w-0 flex-1 truncate text-xl font-semibold leading-6 text-vega-text">Vega</span>
           <button
             type="button"

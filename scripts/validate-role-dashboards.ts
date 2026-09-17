@@ -28,7 +28,7 @@ function dateKeyNow() {
 }
 
 async function main() {
-  const { getRoleDashboard, usesBusinessOverview } = await import("@/lib/dashboard/role-home");
+  const { getRoleDashboard, getDeveloperDashboard, usesBusinessOverview } = await import("@/lib/dashboard/role-home");
   const { UserModel, LeadModel, LeadFollowUpModel, TaskModel, MeetingModel, AttendanceModel, SalesTargetModel } =
     await import("@/models");
 
@@ -152,6 +152,78 @@ async function main() {
       assert.ok(list.title && list.href && list.emptyText, `${role} list ${list.title} is incomplete`);
     }
   }
+
+  // ------------------------------------------- developer, the fuller version
+  const rich = await getDeveloperDashboard(String(dev._id), "Abhishek");
+  assert.equal(rich.greetingName, "Abhishek");
+  assert.ok(rich.quote.text, "a line of encouragement is shown");
+
+  for (const item of rich.metrics) {
+    assert.equal(item.series.length, 7, `${item.key} needs seven days of history`);
+    assert.ok(item.series.every((value) => Number.isFinite(value) && value >= 0), `${item.key} history must be real numbers`);
+  }
+
+  // Nothing records a daily snapshot, so the series is rebuilt from createdAt,
+  // dueAt and completedAt. Check it actually reflects the data rather than
+  // repeating today's figure seven times.
+  const openMetric = rich.metrics.find((item) => item.key === "open")!;
+  assert.equal(
+    openMetric.series[openMetric.series.length - 1],
+    Number(openMetric.value),
+    "the last point of the series must equal today's figure",
+  );
+
+  const overdueMetric = rich.metrics.find((item) => item.key === "overdue")!;
+  assert.equal(overdueMetric.series[overdueMetric.series.length - 1], 1, "one task is overdue today");
+  assert.equal(
+    overdueMetric.series[0],
+    0,
+    "it was not yet overdue seven days ago - a flat series would mean the history is fake",
+  );
+
+  // A task completed long ago must not count as open today.
+  const longDone = await TaskModel.create({
+    title: "Ancient", createdBy: dev._id, assignedToUserId: dev._id,
+    status: "COMPLETED", completedAt: new Date(Date.now() - 10 * 86400000),
+  });
+  const afterAncient = await getDeveloperDashboard(String(dev._id), "Abhishek");
+  const openAfter = afterAncient.metrics.find((item) => item.key === "open")!;
+  assert.equal(openAfter.series[openAfter.series.length - 1], Number(openMetric.value),
+    "a task completed before the window does not change today's open count");
+  await TaskModel.deleteOne({ _id: longDone._id });
+
+  // --- Weekly output.
+  assert.equal(rich.productivity.perDay.length, 7);
+  assert.equal(rich.productivity.workedMinutes, 480, "work time comes from attendance");
+  // Three of this developer's tasks fall due inside the window and none were
+  // completed in it, so the rate is a genuine zero.
+  assert.equal(rich.productivity.ratePercent, 0);
+
+  // With nothing due at all the rate is unknown rather than zero - 0% against no
+  // work would read as a failure.
+  const idle = await UserModel.create({
+    fullName: "Idle Dev", email: "idle@test.invalid", role: "developer", status: "active",
+  });
+  const idleDash = await getDeveloperDashboard(String(idle._id), "Idle");
+  assert.equal(idleDash.productivity.ratePercent, null);
+  assert.equal(idleDash.productivity.completed, 0);
+  assert.equal(idleDash.schedule.length, 0);
+  for (const item of idleDash.metrics) {
+    assert.equal(item.series.length, 7, "an empty dashboard still needs a drawable series");
+  }
+
+  // --- Today's schedule shows only today's meetings, and only this person's.
+  await MeetingModel.create({
+    type: "in_person", startAt: new Date(new Date().setHours(11, 0, 0, 0)), durationMinutes: 45,
+    contactName: "Standup", location: "Office", assignedToUserId: dev._id,
+  });
+  await MeetingModel.create({
+    type: "online", startAt: new Date(Date.now() + 5 * 86400000), durationMinutes: 30,
+    contactName: "Next week", location: "Online", assignedToUserId: dev._id,
+  });
+  const scheduled = await getDeveloperDashboard(String(dev._id), "Abhishek");
+  assert.equal(scheduled.schedule.length, 1, "only today's meeting belongs on today's schedule");
+  assert.equal(scheduled.schedule[0].title, "Standup");
 
   await mongoose.connection.dropDatabase();
   await mongoose.disconnect();

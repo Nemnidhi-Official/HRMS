@@ -390,3 +390,298 @@ export async function getRoleDashboard(role: UserRole, userId: string): Promise<
   if (role === "digital_marketing") return marketingDashboard(userId);
   return developerDashboard(userId);
 }
+
+export type SparkPoint = { label: string; value: number };
+
+export type DeveloperDashboard = {
+  headline: string;
+  greetingName: string;
+  quote: { text: string; footer: string };
+  metrics: Array<
+    RoleMetric & {
+      /** Seven days of real history, oldest first. */
+      series: number[];
+      delta: number;
+      shape: "line" | "bars";
+    }
+  >;
+  lists: Array<{ title: string; emptyText: string; emptySubtext?: string; href: string; icon: "overdue" | "today" | "all"; items: RoleListItem[] }>;
+  schedule: Array<{ id: string; time: string; title: string; detail: string }>;
+  productivity: {
+    perDay: SparkPoint[];
+    completed: number;
+    workedMinutes: number;
+    ratePercent: number | null;
+    deltaPercent: number | null;
+  };
+};
+
+const QUOTES = [
+  { text: "Small steps every day make big progress.", footer: "Keep going" },
+  { text: "Consistency is the key to progress.", footer: "Keep building" },
+  { text: "Finish one thing before starting the next.", footer: "Stay with it" },
+  { text: "Done is better than perfect, then make it better.", footer: "Ship it" },
+];
+
+function startOfDay(date: Date) {
+  const copy = new Date(date);
+  copy.setHours(0, 0, 0, 0);
+  return copy;
+}
+
+/** The last seven days, oldest first, as midnight boundaries. */
+function lastSevenDays() {
+  const days: Date[] = [];
+  for (let offset = 6; offset >= 0; offset -= 1) {
+    const day = startOfDay(new Date());
+    day.setDate(day.getDate() - offset);
+    days.push(day);
+  }
+  return days;
+}
+
+type HistoryTask = {
+  createdAt?: Date | null;
+  dueAt?: Date | null;
+  completedAt?: Date | null;
+  status?: string | null;
+};
+
+/**
+ * Rebuild what these counts were on each of the last seven days.
+ *
+ * Nothing records a daily snapshot, but createdAt, dueAt and completedAt between
+ * them say what was true at any past moment - a task was open on day D if it
+ * existed by then and had not been completed yet. That is a real series rather
+ * than a decorative squiggle, which matters because the number beside it is read
+ * as a trend.
+ */
+function taskHistory(tasks: HistoryTask[]) {
+  const days = lastSevenDays();
+
+  const openSeries: number[] = [];
+  const overdueSeries: number[] = [];
+  const dueSeries: number[] = [];
+
+  for (const day of days) {
+    const dayEnd = new Date(day);
+    dayEnd.setHours(23, 59, 59, 999);
+
+    let open = 0;
+    let overdue = 0;
+    let due = 0;
+
+    for (const task of tasks) {
+      const created = task.createdAt ? new Date(task.createdAt) : null;
+      const completed = task.completedAt ? new Date(task.completedAt) : null;
+      const dueAt = task.dueAt ? new Date(task.dueAt) : null;
+      const closedNow = isClosedStatus(normalizeTaskStatus(task.status ?? undefined));
+
+      // A task can be closed without a completedAt - the field is only stamped by
+      // the update route, so anything closed another way, or before that existed,
+      // has none. Counting it as open would put the series out of step with the
+      // figure printed beside it, which is read as the same number.
+      if (closedNow && !completed) continue;
+
+      const existedByThen = created ? created <= dayEnd : true;
+      const stillOpenThen = !completed || completed > dayEnd;
+
+      if (existedByThen && stillOpenThen) {
+        open += 1;
+        if (dueAt && dueAt < day) overdue += 1;
+      }
+      if (dueAt && dueAt >= day && dueAt <= dayEnd) due += 1;
+    }
+
+    openSeries.push(open);
+    overdueSeries.push(overdue);
+    dueSeries.push(due);
+  }
+
+  return { openSeries, overdueSeries, dueSeries };
+}
+
+function delta(series: number[]) {
+  if (series.length < 2) return 0;
+  return series[series.length - 1] - series[series.length - 2];
+}
+
+/** Meetings assigned to this person that start today. */
+async function todaysSchedule(userId: string) {
+  const dayStart = startOfToday();
+  const dayEnd = endOfToday();
+
+  const meetings = await MeetingModel.find({
+    status: "confirmed",
+    assignedToUserId: userId,
+    startAt: { $gte: dayStart, $lte: dayEnd },
+  })
+    .select("contactName startAt type location notes durationMinutes")
+    .sort({ startAt: 1 })
+    .lean();
+
+  return meetings.map((meeting) => ({
+    id: String(meeting._id),
+    time: new Date(meeting.startAt as Date).toLocaleTimeString("en-IN", {
+      hour: "numeric",
+      minute: "2-digit",
+    }),
+    title: (meeting.contactName as string) ?? "Meeting",
+    detail:
+      (meeting.notes as string) ||
+      (meeting.type === "online" ? "Online" : ((meeting.location as string) ?? "In person")),
+  }));
+}
+
+/**
+ * This week's output.
+ *
+ * "Rate" is the share of tasks that were due this week and actually got
+ * completed - a definition that can be checked, rather than a number with no
+ * stated meaning. Null when nothing was due, because 0% would read as a failure
+ * when in fact there was nothing to do.
+ */
+async function weeklyProductivity(userId: string) {
+  const weekStart = startOfDay(new Date());
+  weekStart.setDate(weekStart.getDate() - 6);
+  const previousStart = new Date(weekStart);
+  previousStart.setDate(previousStart.getDate() - 7);
+
+  const [completedThisWeek, completedLastWeek, dueThisWeek, attendance] = await Promise.all([
+    TaskModel.find({ assignedToUserId: userId, completedAt: { $gte: weekStart } })
+      .select("completedAt")
+      .lean(),
+    TaskModel.countDocuments({
+      assignedToUserId: userId,
+      completedAt: { $gte: previousStart, $lt: weekStart },
+    }),
+    TaskModel.countDocuments({ assignedToUserId: userId, dueAt: { $gte: weekStart, $lte: endOfToday() } }),
+    AttendanceModel.find({ userId, dateKey: { $gte: toDateKey(weekStart) } })
+      .select("workedMinutes")
+      .lean(),
+  ]);
+
+  const perDay = lastSevenDays().map((day) => {
+    const dayEnd = new Date(day);
+    dayEnd.setHours(23, 59, 59, 999);
+    return {
+      label: day.toLocaleDateString("en-IN", { weekday: "short" }),
+      value: completedThisWeek.filter((task) => {
+        const at = new Date(task.completedAt as Date);
+        return at >= day && at <= dayEnd;
+      }).length,
+    };
+  });
+
+  const completed = completedThisWeek.length;
+  const workedMinutes = attendance.reduce((total, row) => total + (row.workedMinutes ?? 0), 0);
+
+  return {
+    perDay,
+    completed,
+    workedMinutes,
+    ratePercent: dueThisWeek > 0 ? Math.round((completed / dueThisWeek) * 100) : null,
+    deltaPercent:
+      completedLastWeek > 0
+        ? Math.round(((completed - completedLastWeek) / completedLastWeek) * 100)
+        : null,
+  };
+}
+
+function toDateKey(date: Date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
+export async function getDeveloperDashboard(
+  userId: string,
+  greetingName: string,
+): Promise<DeveloperDashboard> {
+  await connectToDatabase();
+
+  const [tasks, attendance, schedule, productivity, history] = await Promise.all([
+    taskLoad(userId),
+    myAttendanceThisMonth(userId),
+    todaysSchedule(userId),
+    weeklyProductivity(userId),
+    TaskModel.find({ assignedToUserId: userId, archivedAt: null })
+      .select("createdAt dueAt completedAt status")
+      .limit(500)
+      .lean()
+      .then((rows) => taskHistory(rows as HistoryTask[])),
+  ]);
+
+  // A different line each day, so it changes without needing anywhere to store it.
+  const quote = QUOTES[new Date().getDate() % QUOTES.length];
+
+  return {
+    headline: "Your work today",
+    greetingName,
+    quote,
+    metrics: [
+      {
+        key: "open",
+        label: "Open tasks",
+        value: String(tasks.open.length),
+        tone: "blue",
+        series: history.openSeries,
+        delta: delta(history.openSeries),
+        shape: "line",
+      },
+      {
+        key: "today",
+        label: "Due today",
+        value: String(tasks.dueToday.length),
+        tone: "green",
+        series: history.dueSeries,
+        delta: delta(history.dueSeries),
+        shape: "line",
+      },
+      {
+        key: "overdue",
+        label: "Overdue",
+        value: String(tasks.overdue.length),
+        tone: tasks.overdue.length > 0 ? "red" : "green",
+        series: history.overdueSeries,
+        delta: delta(history.overdueSeries),
+        shape: "line",
+      },
+      {
+        key: "worked",
+        label: "Worked this month",
+        value: hoursAndMinutes(attendance.workedMinutes),
+        hint: `${attendance.present} day${attendance.present === 1 ? "" : "s"} present`,
+        tone: "violet",
+        series: productivity.perDay.map((point) => point.value),
+        delta: 0,
+        shape: "bars",
+      },
+    ],
+    lists: [
+      {
+        title: "Overdue tasks",
+        emptyText: "Nothing overdue.",
+        emptySubtext: "You are on top of it.",
+        href: "/tasks",
+        icon: "overdue",
+        items: taskItems(tasks.overdue, "danger"),
+      },
+      {
+        title: "Due today",
+        emptyText: "Nothing due today.",
+        emptySubtext: "You're all caught up!",
+        href: "/tasks",
+        icon: "today",
+        items: taskItems(tasks.dueToday),
+      },
+      {
+        title: "Everything assigned",
+        emptyText: "Nothing assigned to you.",
+        href: "/tasks",
+        icon: "all",
+        items: taskItems(tasks.open),
+      },
+    ],
+    schedule,
+    productivity,
+  };
+}

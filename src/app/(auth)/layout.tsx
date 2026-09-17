@@ -1,3 +1,5 @@
+
+import { VegaLogo } from "@/components/vega-logo";
 import type { ReactNode } from "react";
 
 export default function AuthLayout({ children }: { children: ReactNode }) {
@@ -29,12 +31,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
         <div className="w-full min-w-0 max-w-[460px]">
           <div className="overflow-hidden rounded-[26px] border border-[#2f6bff]/20 bg-[#060e1c]/70 shadow-[0_40px_120px_-30px_rgba(0,0,0,0.9)] backdrop-blur-[2px]">
             <div className="p-7 sm:p-10">
-              <span className="mb-8 inline-flex items-center gap-3">
-                <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#2f6bff] text-lg font-bold text-white shadow-[0_6px_18px_-4px_rgba(47,107,255,0.7)]">
-                  V
-                </span>
-                <span className="text-lg font-semibold tracking-tight text-white">Vega</span>
-              </span>
+              <VegaLogo horizontal className="mb-8 h-auto w-full max-w-[295px]" />
               {children}
             </div>
           </div>

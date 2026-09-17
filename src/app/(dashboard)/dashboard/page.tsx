@@ -9,8 +9,9 @@ import {
 } from "lucide-react";
 import { getHomeDashboard, type HomeSeriesPoint, type HomeSlice } from "@/lib/dashboard/home";
 import { requireRoleAccess } from "@/lib/auth/role-access";
-import { getRoleDashboard, usesBusinessOverview } from "@/lib/dashboard/role-home";
+import { getDeveloperDashboard, getRoleDashboard, usesBusinessOverview } from "@/lib/dashboard/role-home";
 import { RoleDashboardView } from "@/components/dashboard/role-dashboard";
+import { DeveloperDashboardView } from "@/components/dashboard/developer-dashboard";
 import { cn } from "@/lib/utils/cn";
 
 export const dynamic = "force-dynamic";
@@ -220,6 +221,13 @@ export default async function DashboardPage() {
 
   // Admin and partner get the business overview below. Everyone else gets
   // figures scoped to their own work rather than the company's revenue.
+  // Developers get the fuller treatment: schedule, weekly output and real
+  // seven-day history behind each figure.
+  if (session.role === "developer") {
+    const devData = await getDeveloperDashboard(session.userId, firstNameOnly);
+    return <DeveloperDashboardView data={devData} />;
+  }
+
   if (!usesBusinessOverview(session.role)) {
     const roleData = await getRoleDashboard(session.role, session.userId);
     return <RoleDashboardView data={roleData} firstName={firstNameOnly} />;

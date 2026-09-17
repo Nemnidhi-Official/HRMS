@@ -1,5 +1,7 @@
 "use client";
 
+import { VegaLogo } from "@/components/vega-logo";
+
 import { useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -136,9 +138,7 @@ export function MobileNav({
         )}
       >
         <div className="flex shrink-0 items-center gap-3 border-b border-vega-border-soft px-4 py-3.5">
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-vega-accent text-base font-bold text-white">
-            V
-          </span>
+          <VegaLogo className="h-10 w-10 shrink-0" />
           <span className="min-w-0 flex-1">
             <span className="block truncate text-[15px] font-semibold leading-5 text-vega-text">
               Vega
